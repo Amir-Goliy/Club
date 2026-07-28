@@ -18,17 +18,16 @@
                 autocomplete="name"
                 :placeholder="__('Full name')"
             />
-
-            <!-- Email Address -->
-            <flux:input
-                name="email"
-                :label="__('Email address')"
-                :value="old('email')"
-                type="email"
-                required
-                autocomplete="email"
-                placeholder="email@example.com"
-            />
+	        
+	        <!-- National Code -->
+	        <flux:input
+			        name="national_code"
+			        :label="__('National code')"
+			        :value="old('national_code')"
+			        required
+			        autocomplete="national_code"
+			        placeholder="کد ملی"
+	        />
 
             <!-- Password -->
             <flux:input

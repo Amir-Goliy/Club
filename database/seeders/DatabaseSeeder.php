@@ -2,6 +2,9 @@
 
 namespace Database\Seeders;
 
+use App\Models\Club;
+use App\Models\Member;
+use App\Models\Payment;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -15,11 +18,15 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        Club::factory(10)->create();
+        User::factory(10)->create();
+        Member::factory(10)->create();
+        Payment::factory(10)->create();
 
         User::factory()->create([
             'name' => 'Test User',
-            'email' => 'test@example.com',
+            'national_code' => '1234567890',
+            'role' => 'owner',
         ]);
     }
 }

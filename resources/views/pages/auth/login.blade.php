@@ -9,16 +9,15 @@
         <form method="POST" action="{{ route('login.store') }}" class="flex flex-col gap-6">
             @csrf
 
-            <!-- Email Address -->
+            <!-- National Code -->
             <flux:input
-                name="email"
-                :label="__('Email address')"
-                :value="old('email')"
-                type="email"
+                name="national_code"
+                :label="__('National code')"
+                :value="old('national_code')"
                 required
                 autofocus
-                autocomplete="email"
-                placeholder="email@example.com"
+                autocomplete="national_code"
+                :placeholder="__('National code')"
             />
 
             <!-- Password -->

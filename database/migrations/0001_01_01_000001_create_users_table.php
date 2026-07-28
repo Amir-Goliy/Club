@@ -13,16 +13,17 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('club_id')->constrained('clubs')->onDelete('cascade');
             $table->string('name');
-            $table->string('email')->unique();
-            $table->timestamp('email_verified_at')->nullable();
+            $table->string('national_code')->unique();
             $table->string('password');
+            $table->enum('role', ['owner', 'admin', 'user'])->default('user');
             $table->rememberToken();
             $table->timestamps();
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {
-            $table->string('email')->primary();
+            $table->string('national_code')->primary();
             $table->string('token');
             $table->timestamp('created_at')->nullable();
         });
