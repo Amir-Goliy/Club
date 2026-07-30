@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\Club;
 use App\Models\Member;
-use App\Models\Payment;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -18,15 +17,35 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        Club::factory(10)->create();
-        User::factory(10)->create();
-        Member::factory(10)->create();
-        Payment::factory(10)->create();
+        Club::factory(10)
+            ->create()
+            ->each(function ($club) {
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'national_code' => '1234567890',
-            'role' => 'owner',
-        ]);
+                User::factory()->create([
+                    'club_id' => $club->id,
+                ]);
+
+                Member::factory(10)->create([
+                    'club_id' => $club->id,
+                ]);
+
+            });
+
+        Club::factory(1)
+            ->create(['image' => 'image/image.png'])
+            ->each(function ($club) {
+
+                User::factory()->create([
+                    'name' => 'Test User',
+                    'national_code' => '1234567890',
+                    'role' => 'admin',
+                    'club_id' => $club->id,
+                ]);
+
+                Member::factory(10)->create([
+                    'club_id' => $club->id,
+                ]);
+
+            });
     }
 }

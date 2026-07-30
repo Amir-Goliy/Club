@@ -7,11 +7,11 @@
         <flux:header container class="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
             <flux:sidebar.toggle class="lg:hidden mr-2" icon="bars-2" inset="left" />
 
-            <x-app-logo href="{{ route('owner.dashboard') }}" wire:navigate />
+            <x-app-logo href="{{ auth()->user()->role == 'admin' ? route('admin.dashboard') : route('member.dashboard') }}" wire:navigate />
 
             <flux:navbar class="-mb-px max-lg:hidden">
-                <flux:navbar.item icon="user-plus" wire:navigate x-on:click="$dispatch('open-create-member')">
-                    {{ __('Create Member') }}
+                <flux:navbar.item icon="user-plus" class="{{ auth()->user()->role == 'admin' ? '' : 'hidden' }}" wire:navigate x-on:click="$dispatch('open-create-member')">
+{{--                    {{ __('Create Member') }}--}}
                 </flux:navbar.item>
             </flux:navbar>
 

@@ -13,7 +13,7 @@ class Payment extends Model
     use HasFactory;
 
     protected $fillable = [
-        'user_id',
+        'member_id',
         'club_id',
         'amount',
         'month',

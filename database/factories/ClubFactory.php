@@ -22,7 +22,6 @@ class ClubFactory extends Factory
             'owner_name' => fake()->name(),
             'phone' => fake()->phoneNumber(),
             'address' => fake()->address(),
-            'logo' => fake()->imageUrl(),
         ];
     }
 }

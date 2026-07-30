@@ -15,10 +15,10 @@ class Role
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (auth()->user()->role == 'owner') {
+        if (auth()->user()->role == 'admin') {
             return $next($request);
         } else {
-            return redirect()->route('admin.dashboard');
+            return redirect()->route('member.dashboard');
         }
     }
 }
