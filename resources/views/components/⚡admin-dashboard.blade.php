@@ -16,13 +16,25 @@ new class extends Component {
     public $image;
     public string $first_name;
     public string $last_name;
-    public string $birth_date;
     public string $national_code;
+    public string $birth_date;
     public string $phone;
+    public string $search = '';
 
     public function getMembersProperty(): LengthAwarePaginator
     {
-        return Member::query()->where('club_id', auth()->user()->club->id)->orderByDesc('id')->paginate(10);
+        return Member::query()
+            ->where('club_id', auth()->user()->club_id)
+            ->when($this->search, function ($query) {
+                $query->where(function ($query) {
+                    $query->where('first_name', 'like', "%{$this->search}%")
+                        ->orWhere('last_name', 'like', "%{$this->search}%")
+                        ->orWhere('national_code', 'like', "%{$this->search}%")
+                        ->orWhere('phone', 'like', "%{$this->search}%");
+                });
+            })
+            ->latest()
+            ->paginate(10);
     }
 
     protected function rules(): array
@@ -44,10 +56,13 @@ new class extends Component {
             'image',
             'first_name',
             'last_name',
-            'birth_date',
             'national_code',
+            'birth_date',
             'phone',
+            'search',
         ]);
+
+        $this->clearValidation();
     }
 
     #[On('open-create-member')]
@@ -64,7 +79,9 @@ new class extends Component {
 
         $validated['club_id'] = auth()->user()->club->id;
 
-        $validated['image'] = $this->image->store('image', 'public');
+        if ($this->image) {
+            $validated['image'] = $this->image->store('image', 'public');
+        }
 
         Member::query()->create($validated);
 
@@ -75,14 +92,16 @@ new class extends Component {
 
     public function edit(Member $member): void
     {
+        $this->resetForm();
+
         $this->editing = $member;
 
         $this->fill($member->only([
             'image',
             'first_name',
             'last_name',
-            'birth_date',
             'national_code',
+            'birth_date',
             'phone',
         ]));
 
@@ -117,66 +136,77 @@ new class extends Component {
 ?>
 
 <div>
-    <flux:table class="text-center" :paginate="$this->members">
-        <flux:table.columns>
-            <flux:table.column align="center">{{ __('Image') }}</flux:table.column>
+    <div class="flex justify-center mb-6">
+        <div class="w-full max-w-50">
+            <flux:input
+                wire:model.live.debounce.300ms="search"
+                placeholder="جستجوی اعضا..."
+            />
+        </div>
+    </div>
 
-            <flux:table.column align="center">{{ __('First Name') }}</flux:table.column>
+    <div class="overflow-x-auto">
+        <flux:table class="text-center" :paginate="$this->members">
+            <flux:table.columns>
+                <flux:table.column align="center">{{ __('Image') }}</flux:table.column>
 
-            <flux:table.column align="center">{{ __('Last Name') }}</flux:table.column>
+                <flux:table.column align="center">{{ __('First Name') }}</flux:table.column>
 
-            <flux:table.column align="center">{{ __('Birth Date') }}</flux:table.column>
+                <flux:table.column align="center">{{ __('Last Name') }}</flux:table.column>
 
-            <flux:table.column align="center">{{ __('National Code') }}</flux:table.column>
+                <flux:table.column align="center">{{ __('National Code') }}</flux:table.column>
 
-            <flux:table.column align="center">{{ __('Phone') }}</flux:table.column>
+                <flux:table.column align="center">{{ __('Birth Date') }}</flux:table.column>
 
-            <flux:table.column align="center">{{ __('Edit') }}</flux:table.column>
+                <flux:table.column align="center">{{ __('Phone') }}</flux:table.column>
 
-            <flux:table.column align="center">{{ __('Delete') }}</flux:table.column>
-        </flux:table.columns>
+                <flux:table.column align="center">{{ __('Edit') }}</flux:table.column>
 
-        <flux:table.rows>
-            @foreach($this->members as $member)
-                <flux:table.row>
-                    <flux:table.cell class="flex justify-center items-center">
-                        <img
-                            src="{{ Storage::url($member->image) }}"
-                            class="w-30 rounded-xl object-cover"
-                            alt=""
-                        >
-                    </flux:table.cell>
+                <flux:table.column align="center">{{ __('Delete') }}</flux:table.column>
+            </flux:table.columns>
 
-                    <flux:table.cell>{{ $member->first_name }}</flux:table.cell>
+            <flux:table.rows>
+                @foreach($this->members as $member)
+                    <flux:table.row>
+                        <flux:table.cell class="flex justify-center items-center">
+                            <img
+                                src="{{ Storage::url($member->image) }}"
+                                class="w-15 lg:w-30 rounded-xl object-cover"
+                                alt=""
+                            >
+                        </flux:table.cell>
 
-                    <flux:table.cell>{{ $member->last_name }}</flux:table.cell>
+                        <flux:table.cell>{{ $member->first_name }}</flux:table.cell>
 
-                    <flux:table.cell>{{ $member->birth_date }}</flux:table.cell>
+                        <flux:table.cell>{{ $member->last_name }}</flux:table.cell>
 
-                    <flux:table.cell>{{ $member->national_code }}</flux:table.cell>
+                        <flux:table.cell>{{ $member->national_code }}</flux:table.cell>
 
-                    <flux:table.cell>{{ $member->phone }}</flux:table.cell>
+                        <flux:table.cell>{{ $member->birth_date }}</flux:table.cell>
 
-                    <flux:table.cell>
-                        <flux:button wire:click="edit({{ $member->id }})" variant="primary" color="yellow"
-                        >{{ __('Edit') }}
-                        </flux:button>
-                    </flux:table.cell>
+                        <flux:table.cell>{{ $member->phone }}</flux:table.cell>
 
-                    <flux:table.cell>
-                        <flux:button wire:click="delete({{ $member->id }})" variant="danger">
-                            {{ __('Delete') }}
-                        </flux:button>
-                    </flux:table.cell>
-                </flux:table.row>
-            @endforeach
-        </flux:table.rows>
-    </flux:table>
+                        <flux:table.cell>
+                            <flux:button wire:click="edit({{ $member->id }})" variant="primary" color="yellow"
+                            >{{ __('Edit') }}
+                            </flux:button>
+                        </flux:table.cell>
 
-    <flux:modal :dismissible="false" name="member-modal">
+                        <flux:table.cell>
+                            <flux:button wire:click="delete({{ $member->id }})" variant="danger">
+                                {{ __('Delete') }}
+                            </flux:button>
+                        </flux:table.cell>
+                    </flux:table.row>
+                @endforeach
+            </flux:table.rows>
+        </flux:table>
+    </div>
+
+    <flux:modal :flyout="true" position="left" :dismissible="false" name="member-modal">
         <div class="space-y-4">
             <flux:heading>
-                {{ $editing ? __('Edit') : __('Create') }}
+                {{ $editing ? __('Edit Member') : __('Create Member') }}
             </flux:heading>
 
             <flux:input type="file" wire:model.live="image" label="{{ __('Image') }}"/>
@@ -185,7 +215,7 @@ new class extends Component {
                 <div class="flex justify-center items-center">
                     <img
                         src="{{ is_string($image) ? Storage::url($image) : $image->temporaryUrl() }}"
-                        class="w-80 rounded-xl object-cover"
+                        class="w-20 lg:w-80 rounded-xl object-cover"
                         alt=""
                     >
                 </div>
@@ -195,15 +225,15 @@ new class extends Component {
 
             <flux:input wire:model.live="last_name" label="{{ __('Last Name') }}"/>
 
-            <flux:input type="date" max="1399-12-31" wire:model.live="birth_date" label="{{ __('Birth Date') }}"/>
-
             <flux:input wire:model.live="national_code" label="{{ __('National Code') }}"/>
+
+            <flux:input mask="****-**-**" wire:model.live="birth_date" label="{{ __('Birth Date') }}"/>
 
             <flux:input wire:model.live="phone" label="{{ __('Phone') }}"/>
 
             <div class="flex justify-end">
                 <flux:button wire:click="{{ $editing ? 'update' : 'store' }}">
-                    {{ $editing ? __('Save') : __('Create') }}
+                    {{ __('Save') }}
                 </flux:button>
             </div>
         </div>

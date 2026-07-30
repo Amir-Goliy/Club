@@ -1177,10 +1177,14 @@
     "Father Name": "نام پدر",
     "Birth Date": "تاریخ تولد",
     "National Code": "کد ملی",
-    "Phone": "تلفن",
+    "Phone": "شماره تلفن",
     "Image": "عکس",
     "Club Name": "اسم باشگاه",
     "Create User": "ساخت یوزر",
     "Confirm password": "تایید رمز عبور",
+    "Toggle sidebar": "بستن نوار کناری",
+    "Choose file": "انتخاب فایل",
+    "No file chosen": "فایلی انتخاب نشده است",
+    "Edit Member": "ویرایش عضو",
     "Create Member": "ساخت عضو"
 }
