@@ -112,12 +112,16 @@ new class extends Component {
     {
         $validated = $this->validate();
 
-        if ($this->image && !is_string($this->image)) {
-            Storage::disk('public')->delete($this->editing->image);
+        if ($this->image && ! is_string($this->image)) {
+
+            if (
+                $this->editing->image &&
+                Storage::disk('public')->exists($this->editing->image)
+            ) {
+                Storage::disk('public')->delete($this->editing->image);
+            }
 
             $validated['image'] = $this->image->store('image', 'public');
-        } else {
-            $validated['image'] = $this->editing->image;
         }
 
         $this->editing->update($validated);
@@ -145,7 +149,7 @@ new class extends Component {
         </div>
     </div>
 
-    <div class="overflow-x-auto">
+    <div>
         <flux:table class="text-center" :paginate="$this->members">
             <flux:table.columns>
                 <flux:table.column align="center">{{ __('Image') }}</flux:table.column>
@@ -156,7 +160,7 @@ new class extends Component {
 
                 <flux:table.column align="center">{{ __('National Code') }}</flux:table.column>
 
-                <flux:table.column align="center">{{ __('Birth Date') }}</flux:table.column>
+                <flux:table.column align="center">{{ __('Birth date') }}</flux:table.column>
 
                 <flux:table.column align="center">{{ __('Phone') }}</flux:table.column>
 
@@ -171,7 +175,7 @@ new class extends Component {
                         <flux:table.cell class="flex justify-center items-center">
                             <img
                                 src="{{ Storage::url($member->image) }}"
-                                class="w-15 lg:w-30 rounded-xl object-cover"
+                                class="w-15 sm:w-30 rounded-xl object-cover"
                                 alt=""
                             >
                         </flux:table.cell>
@@ -187,13 +191,13 @@ new class extends Component {
                         <flux:table.cell>{{ $member->phone }}</flux:table.cell>
 
                         <flux:table.cell>
-                            <flux:button wire:click="edit({{ $member->id }})" variant="primary" color="yellow"
-                            >{{ __('Edit') }}
+                            <flux:button wire:click="edit({{ $member->id }})">
+                                {{ __('Edit') }}
                             </flux:button>
                         </flux:table.cell>
 
                         <flux:table.cell>
-                            <flux:button wire:click="delete({{ $member->id }})" variant="danger">
+                            <flux:button wire:click="delete({{ $member->id }})" variant="primary">
                                 {{ __('Delete') }}
                             </flux:button>
                         </flux:table.cell>
@@ -215,7 +219,7 @@ new class extends Component {
                 <div class="flex justify-center items-center">
                     <img
                         src="{{ is_string($image) ? Storage::url($image) : $image->temporaryUrl() }}"
-                        class="w-20 lg:w-80 rounded-xl object-cover"
+                        class="w-20 sm:w-80 rounded-xl object-cover"
                         alt=""
                     >
                 </div>
@@ -227,7 +231,7 @@ new class extends Component {
 
             <flux:input wire:model.live="national_code" label="{{ __('National Code') }}"/>
 
-            <flux:input mask="****-**-**" wire:model.live="birth_date" label="{{ __('Birth Date') }}"/>
+            <flux:input mask="****-**-**" wire:model.live="birth_date" label="{{ __('Birth date') }}"/>
 
             <flux:input wire:model.live="phone" label="{{ __('Phone') }}"/>
 

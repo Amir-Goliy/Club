@@ -6,19 +6,19 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-class Role
+class RoleMiddleware
 {
     /**
      * Handle an incoming request.
      *
      * @param  Closure(Request): (Response)  $next
      */
-    public function handle(Request $request, Closure $next): Response
+    public function handle(Request $request, Closure $next, $role)
     {
-        if (auth()->user()->role == 'admin') {
-            return $next($request);
-        } else {
-            return redirect()->route('member.dashboard');
+        if (auth()->user()->role != $role) {
+            abort(404);
         }
+
+        return $next($request);
     }
 }

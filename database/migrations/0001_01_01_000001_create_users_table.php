@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('club_id')->references('id')->on('clubs');
+            $table->foreignId('club_id')->constrained('clubs')->onDelete('cascade');
             $table->string('name');
             $table->string('national_code')->unique();
             $table->string('password');

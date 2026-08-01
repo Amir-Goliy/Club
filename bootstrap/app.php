@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Middleware\Role;
+use App\Http\Middleware\RoleMiddleware;
 use App\Http\Middleware\Rolee;
 use App\Http\Middleware\Roleee;
 use Illuminate\Foundation\Application;
@@ -16,7 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
-            'role' => Role::class,
+            'role' => RoleMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

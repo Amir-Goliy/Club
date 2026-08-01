@@ -7,4 +7,6 @@
     />
 </svg>--}}
 
-<img src="{{ Storage::url(auth()->user()->club->image) }}" alt="">
+@if(auth()->user())
+    <img src="{{ Storage::url(auth()->user()->club->image) }}" alt="">
+@endif

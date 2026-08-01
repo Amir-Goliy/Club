@@ -2,12 +2,19 @@
 
 use Illuminate\Support\Facades\Route;
 
-Route::redirect('/', '/admin/dashboard');
+Route::redirect('/', '/login');
 
 Route::middleware('auth')->group(function () {
-    Route::livewire('/owner/dashboard', 'owner-dashboard')->name('owner.dashboard')->middleware('role');
-    Route::livewire('/admin/dashboard', 'admin-dashboard')->name('admin.dashboard');
-    Route::livewire('/member/dashboard', 'member-dashboard')->name('member.dashboard');
+    Route::livewire('/admin/dashboard', 'admin-dashboard')
+        ->name('admin.dashboard')
+        ->middleware('role:admin');
+
+    Route::livewire('/member/dashboard', 'member-dashboard')
+        ->name('member.dashboard')
+        ->middleware('role:user');
 });
+
+Route::livewire('/activate-account', 'pages::auth.activate-account')
+    ->name('activate.account');
 
 require __DIR__.'/settings.php';

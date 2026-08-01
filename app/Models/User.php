@@ -27,12 +27,20 @@ use Illuminate\Support\Str;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['name', 'national_code', 'password', 'role'])]
+#[Fillable(['club_id', 'name', 'national_code', 'password', 'role'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
+
+    protected $fillable = [
+        'club_id',
+        'name',
+        'national_code',
+        'password',
+        'role',
+    ];
 
     /**
      * Get the attributes that should be cast.
