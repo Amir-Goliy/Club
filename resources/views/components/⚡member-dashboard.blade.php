@@ -124,9 +124,16 @@ new class extends Component {
                 <span class="text-sm text-zinc-700 dark:text-zinc-300">
                     {{ __('Joined at') }}
                 </span>
-                <p>
-                    {{ jdate($member->created_at)->format('Y-m-d') }}
-                </p>
+
+                @if(app()->getLocale() === 'fa')
+                    <p>
+                        {{ jdate($member->created_at)->format('Y/m/d') }}
+                    </p>
+                @else
+                    <p>
+                        {{ $member->created_at->format('F d, Y') }}
+                    </p>
+                @endif
             </div>
 
             <div>
@@ -148,9 +155,15 @@ new class extends Component {
                 <span class="text-sm text-zinc-700 dark:text-zinc-300">
                     {{ __('Birth date') }}
                 </span>
-                <p>
-                    {{ $member->birth_date }}
-                </p>
+                @if(app()->getLocale() === 'fa')
+                    <p>
+                        {{ jdate($member->birth_date)->format('Y/m/d') }}
+                    </p>
+                @else
+                    <p>
+                        {{ \Carbon\Carbon::parse($member->birth_date)->format('F d, Y') }}
+                    </p>
+                @endif
             </div>
         </div>
     </flux:card>
@@ -158,33 +171,37 @@ new class extends Component {
     {{-- Payments --}}
     <flux:card>
         <flux:heading class="mb-4">
-            وضعیت پرداخت شهریه
+            {{ __('Payment History') }}
         </flux:heading>
         @forelse($member->payments->where('year',jdate()->getYear()) as $payment)
             <div class="flex justify-between items-center border-b py-3">
                 <div>
                     <p>
-                        {{ $payment->month_name }}
+                        @if(app()->getLocale() === 'fa')
+                            {{ $payment->month_name }}
+                        @else
+                            {{ \Carbon\Carbon::create()->month($payment->month)->format('F') }}
+                        @endif
                     </p>
                     <small class="text-zinc-700 dark:text-zinc-300">
                         {{ $payment->amount }}
-                        تومان
+                        {{ __('Dollar') }}
                     </small>
                 </div>
 
                 @if($member->payments->first())
                     <flux:badge color="green">
-                        پرداخت شده
+                        {{ __('Paid') }}
                     </flux:badge>
                 @else
                     <flux:badge color="red">
-                        پرداخت نشده
+                        {{ __('Unpaid') }}
                     </flux:badge>
                 @endif
             </div>
         @empty
             <p class="text-zinc-700 dark:text-zinc-300">
-                هنوز پرداختی ثبت نشده است.
+                {{ __('No payment has been recorded yet.') }}
             </p>
         @endforelse
     </flux:card>

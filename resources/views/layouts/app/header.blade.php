@@ -35,7 +35,11 @@
     <flux:navbar class="-mb-px max-sm:hidden">
         @if(auth()->user()->role == 'admin')
             <flux:navbar.item icon="calendar-days">
-                {{ jdate()->format('l d F Y') }}
+                @if(app()->getLocale() === 'fa')
+                    {{ jdate()->format('l d F Y') }}
+                @else
+                    {{ now()->translatedFormat('l, F d Y') }}
+                @endif
             </flux:navbar.item>
         @endif
     </flux:navbar>

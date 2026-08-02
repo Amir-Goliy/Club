@@ -19,7 +19,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         Club::factory(1)
-            ->create(['image' => 'image/image.png'])
+            ->create(['image' => 'image/image.jpg'])
             ->each(function ($club) {
 
                 User::factory()->create([
