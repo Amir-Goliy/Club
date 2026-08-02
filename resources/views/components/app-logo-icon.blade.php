@@ -8,5 +8,5 @@
 </svg>--}}
 
 @if(auth()->user())
-    <img src="{{ Storage::url(auth()->user()->club->image) }}" alt="">
+    <img class="size-8" src="{{ Storage::url(auth()->user()->club->image) }}" alt="">
 @endif

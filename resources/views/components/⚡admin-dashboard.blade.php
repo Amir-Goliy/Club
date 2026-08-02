@@ -1,7 +1,9 @@
 <?php
 
 use App\Models\Member;
+use App\Models\Payment;
 use Illuminate\Pagination\LengthAwarePaginator;
+use JetBrains\PhpStorm\NoReturn;
 use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -21,10 +23,19 @@ new class extends Component {
     public string $phone;
     public string $search = '';
 
+    public ?int $amount = null;
+    public int $payment_month;
+
+    public bool $debtors = false;
+
     public function getMembersProperty(): LengthAwarePaginator
     {
         return Member::query()
             ->where('club_id', auth()->user()->club_id)
+            ->with(['payments' => function ($query) {
+                $query->where('year', jdate()->getYear())
+                    ->where('month', jdate()->getMonth());
+            }])
             ->when($this->search, function ($query) {
                 $query->where(function ($query) {
                     $query->where('first_name', 'like', "%{$this->search}%")
@@ -33,14 +44,34 @@ new class extends Component {
                         ->orWhere('phone', 'like', "%{$this->search}%");
                 });
             })
-            ->latest()
+            ->when($this->debtors, function ($query) {
+                $query->whereDoesntHave('payments', function ($query) {
+                    $query->where('year', jdate()->getYear())
+                        ->where('month', jdate()->getMonth());
+                });
+            })
+            ->orderByDesc('id')
             ->paginate(10);
+    }
+
+    public function updatedPaymentMonth(): void
+    {
+        if (!$this->editing) {
+            return;
+        }
+
+        $payment = $this->editing->payments()
+            ->where('year', jdate()->getYear())
+            ->where('month', $this->payment_month)
+            ->first();
+
+        $this->amount = $payment?->amount;
     }
 
     protected function rules(): array
     {
         return [
-            'image' => 'nullable|max:2048',
+            'image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
             'first_name' => 'required|string|not_regex:/\d/',
             'last_name' => 'required|string|not_regex:/\d/',
             'national_code' => 'required|digits:10|unique:members,national_code,' . ($this->editing?->id),
@@ -60,6 +91,7 @@ new class extends Component {
             'birth_date',
             'phone',
             'search',
+            'amount',
         ]);
 
         $this->clearValidation();
@@ -70,22 +102,46 @@ new class extends Component {
     {
         $this->resetForm();
 
+        $this->payment_month = jdate()->getMonth();
+
         $this->modal('member-modal')->show();
+    }
+
+    #[NoReturn]
+    #[On('debtor-toggle')]
+    public function debtorToggle(): void
+    {
+        $this->debtors = !$this->debtors;
     }
 
     public function store(): void
     {
         $validated = $this->validate();
 
-        $validated['club_id'] = auth()->user()->club->id;
+        $validated['club_id'] = auth()->user()->club_id;
 
         if ($this->image) {
             $validated['image'] = $this->image->store('image', 'public');
         }
 
-        Member::query()->create($validated);
+        $member = Member::create($validated);
+
+        if ($this->amount) {
+            $member->payments()->updateOrCreate(
+                [
+                    'year' => jdate()->getYear(),
+                    'month' => $this->payment_month,
+                ],
+                [
+                    'amount' => $this->amount,
+                    'paid_at' => now(),
+                ]
+            );
+        }
 
         $this->modal('member-modal')->close();
+
+        Flux::toast(text: __('Member saved.'), variant: 'success');
 
         $this->resetForm();
     }
@@ -105,6 +161,10 @@ new class extends Component {
             'phone',
         ]));
 
+        $this->payment_month = jdate()->getMonth();
+
+        $this->updatedPaymentMonth();
+
         $this->modal('member-modal')->show();
     }
 
@@ -112,7 +172,7 @@ new class extends Component {
     {
         $validated = $this->validate();
 
-        if ($this->image && ! is_string($this->image)) {
+        if ($this->image && !is_string($this->image)) {
 
             if (
                 $this->editing->image &&
@@ -126,15 +186,31 @@ new class extends Component {
 
         $this->editing->update($validated);
 
+        if ($this->amount) {
+
+            Payment::query()->updateOrCreate([
+                'member_id' => $this->editing->id,
+                'year' => jdate()->getYear(),
+                'month' => $this->payment_month,
+                'amount' => $this->amount,
+            ]);
+        }
+
         $this->modal('member-modal')->close();
+
+        Flux::toast(text: __('Member updated.'), variant: 'success');
 
         $this->resetForm();
     }
 
     public function delete(Member $member): void
     {
-        Storage::disk('public')->delete($member->image);
+        if ($member->image)
+            Storage::disk('public')->delete($member->image);
+
         $member->delete();
+
+        Flux::toast(text: __('Member deleted.'), variant: 'success');
     }
 };
 ?>
@@ -144,7 +220,8 @@ new class extends Component {
         <div class="w-full max-w-50">
             <flux:input
                 wire:model.live.debounce.300ms="search"
-                placeholder="جستجوی اعضا..."
+                placeholder="{{ __('Search') }}"
+                clearable="true"
             />
         </div>
     </div>
@@ -152,21 +229,41 @@ new class extends Component {
     <div>
         <flux:table class="text-center" :paginate="$this->members">
             <flux:table.columns>
-                <flux:table.column align="center">{{ __('Image') }}</flux:table.column>
+                <flux:table.column align="center">
+                    {{ __('Image') }}
+                </flux:table.column>
 
-                <flux:table.column align="center">{{ __('First Name') }}</flux:table.column>
+                <flux:table.column align="center">
+                    {{ __('First Name') }}
+                </flux:table.column>
 
-                <flux:table.column align="center">{{ __('Last Name') }}</flux:table.column>
+                <flux:table.column align="center">
+                    {{ __('Last Name') }}
+                </flux:table.column>
 
-                <flux:table.column align="center">{{ __('National Code') }}</flux:table.column>
+                <flux:table.column align="center">
+                    {{ __('National Code') }}
+                </flux:table.column>
 
-                <flux:table.column align="center">{{ __('Birth date') }}</flux:table.column>
+                <flux:table.column align="center">
+                    {{ __('Birth date') }}
+                </flux:table.column>
 
-                <flux:table.column align="center">{{ __('Phone') }}</flux:table.column>
+                <flux:table.column align="center">
+                    {{ __('Phone') }}
+                </flux:table.column>
 
-                <flux:table.column align="center">{{ __('Edit') }}</flux:table.column>
+                <flux:table.column align="center">
+                    {{ __('Payment') }}
+                </flux:table.column>
 
-                <flux:table.column align="center">{{ __('Delete') }}</flux:table.column>
+                <flux:table.column align="center">
+                    {{ __('Edit') }}
+                </flux:table.column>
+
+                <flux:table.column align="center">
+                    {{ __('Delete') }}
+                </flux:table.column>
             </flux:table.columns>
 
             <flux:table.rows>
@@ -180,15 +277,41 @@ new class extends Component {
                             >
                         </flux:table.cell>
 
-                        <flux:table.cell>{{ $member->first_name }}</flux:table.cell>
+                        <flux:table.cell>
+                            {{ $member->first_name }}
+                        </flux:table.cell>
 
-                        <flux:table.cell>{{ $member->last_name }}</flux:table.cell>
+                        <flux:table.cell>
+                            {{ $member->last_name }}
+                        </flux:table.cell>
 
-                        <flux:table.cell>{{ $member->national_code }}</flux:table.cell>
+                        <flux:table.cell>
+                            {{ $member->national_code }}
+                        </flux:table.cell>
 
-                        <flux:table.cell>{{ $member->birth_date }}</flux:table.cell>
+                        <flux:table.cell>
+                            {{ $member->birth_date }}
+                        </flux:table.cell>
 
-                        <flux:table.cell>{{ $member->phone }}</flux:table.cell>
+                        <flux:table.cell>
+                            {{ $member->phone }}
+                        </flux:table.cell>
+
+                        <flux:table.cell>
+                            @php
+                                $payment = $member->payments->first();
+                            @endphp
+
+                            @if($payment)
+                                <flux:badge color="green">
+                                    {{ __('Paid') }}
+                                </flux:badge>
+                            @else
+                                <flux:badge color="red">
+                                    {{ __('Unpaid') }}
+                                </flux:badge>
+                            @endif
+                        </flux:table.cell>
 
                         <flux:table.cell>
                             <flux:button wire:click="edit({{ $member->id }})">
@@ -197,7 +320,10 @@ new class extends Component {
                         </flux:table.cell>
 
                         <flux:table.cell>
-                            <flux:button wire:click="delete({{ $member->id }})" variant="primary">
+                            <flux:button
+                                wire:click="delete({{ $member->id }})"
+                                variant="primary"
+                            >
                                 {{ __('Delete') }}
                             </flux:button>
                         </flux:table.cell>
@@ -207,13 +333,26 @@ new class extends Component {
         </flux:table>
     </div>
 
-    <flux:modal :flyout="true" position="left" :dismissible="false" name="member-modal">
+    <flux:modal
+        :flyout="true"
+        position="left"
+        :dismissible="false"
+        name="member-modal"
+    >
         <div class="space-y-4">
             <flux:heading>
                 {{ $editing ? __('Edit Member') : __('Create Member') }}
             </flux:heading>
 
-            <flux:input type="file" wire:model.live="image" label="{{ __('Image') }}"/>
+            <flux:heading>
+                {{ __('Member image') }}
+            </flux:heading>
+
+            <flux:input
+                type="file"
+                accept=".png,.jpg,.jpeg"
+                wire:model.live="image"
+            />
 
             @if ($image)
                 <div class="flex justify-center items-center">
@@ -225,6 +364,12 @@ new class extends Component {
                 </div>
             @endif
 
+            <flux:separator/>
+
+            <flux:heading>
+                {{ __('Member information') }}
+            </flux:heading>
+
             <flux:input wire:model.live="first_name" label="{{ __('First Name') }}"/>
 
             <flux:input wire:model.live="last_name" label="{{ __('Last Name') }}"/>
@@ -234,6 +379,36 @@ new class extends Component {
             <flux:input mask="****-**-**" wire:model.live="birth_date" label="{{ __('Birth date') }}"/>
 
             <flux:input wire:model.live="phone" label="{{ __('Phone') }}"/>
+
+            <flux:separator/>
+
+            <flux:heading>
+                {{ __('Payment Information') }}
+            </flux:heading>
+
+            <flux:input
+                type="number"
+                wire:model.live="amount"
+                label="مبلغ"
+            />
+
+            <flux:select
+                wire:model.live="payment_month"
+                label="ماه"
+            >
+                <option value="1">فروردین</option>
+                <option value="2">اردیبهشت</option>
+                <option value="3">خرداد</option>
+                <option value="4">تیر</option>
+                <option value="5">مرداد</option>
+                <option value="6">شهریور</option>
+                <option value="7">مهر</option>
+                <option value="8">آبان</option>
+                <option value="9">آذر</option>
+                <option value="10">دی</option>
+                <option value="11">بهمن</option>
+                <option value="12">اسفند</option>
+            </flux:select>
 
             <div class="flex justify-end">
                 <flux:button wire:click="{{ $editing ? 'update' : 'store' }}">

@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Club;
 use App\Models\Member;
+use App\Models\Payment;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -30,8 +31,11 @@ class DatabaseSeeder extends Seeder
 
                 Member::factory(10)->create([
                     'club_id' => $club->id,
-                ]);
-
+                ])->each(function ($member) {
+                    Payment::factory(1)->create([
+                        'member_id' => $member->id,
+                    ]);
+                });
             });
     }
 }

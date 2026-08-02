@@ -19,7 +19,7 @@ return new class extends Migration
             $table->string('first_name');
             $table->string('last_name');
             $table->string('national_code');
-            $table->string('birth_date')->nullable();
+            $table->date('birth_date')->nullable();
             $table->string('phone')->nullable();
             $table->timestamps();
         });

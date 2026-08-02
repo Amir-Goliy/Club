@@ -1,5 +1,8 @@
-<!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" dir="{{ app()->getLocale() == 'fa' ? 'rtl' : 'ltr' }}" class="dark">
+@php use App\Models\Member;use App\Models\Payment; @endphp
+@php @endphp
+    <!DOCTYPE html>
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" dir="{{ app()->getLocale() == 'fa' ? 'rtl' : 'ltr' }}"
+      class="dark">
 <head>
     @include('partials.head')
 </head>
@@ -8,13 +11,18 @@
     <flux:sidebar.toggle class="sm:hidden mr-2" icon="bars-2" inset="left"/>
 
     <x-app-logo href="{{ auth()->user()->role == 'admin' ? route('admin.dashboard') : route('member.dashboard') }}"
-                wire:navigate.hover/>
+                wire:navigate/>
 
     <flux:navbar class="-mb-px max-sm:hidden">
         @if(auth()->user()->role == 'admin')
+            <flux:navbar.item icon="user">
+                {{ __('Members') }} :
+                {{ Member::query()->where('club_id', auth()->user()->club_id)->count() }}
+            </flux:navbar.item>
+
             <flux:navbar.item
-                icon="user-plus"
-                wire:navigate.hover
+                icon="plus"
+                wire:navigate
                 x-on:click="$dispatch('open-create-member')"
             >
                 {{ __('Create Member') }}
@@ -23,6 +31,52 @@
     </flux:navbar>
 
     <flux:spacer/>
+
+    <flux:navbar class="-mb-px max-sm:hidden">
+        @if(auth()->user()->role == 'admin')
+            <flux:navbar.item icon="calendar-days">
+                {{ jdate()->format('l d F Y') }}
+            </flux:navbar.item>
+        @endif
+    </flux:navbar>
+
+    <flux:spacer/>
+
+    <flux:navbar class="-mb-px max-sm:hidden">
+        @if(auth()->user()->role == 'admin')
+            <flux:navbar.item
+                icon="exclamation-triangle"
+                wire:navigate
+                x-on:click="$dispatch('debtor-toggle')"
+            >
+                {{ __('Debtors') }} :
+                {{
+                    Member::query()
+                        ->where('club_id', auth()->user()->club_id)
+                        ->whereDoesntHave('payments', function ($query) {
+                            $query->where('year', jdate()->getYear())
+                            ->where('month', jdate()->getMonth());
+                        })
+                        ->count()
+                }}
+            </flux:navbar.item>
+
+            <flux:navbar.item icon="banknotes">
+                درآمد :
+                {{
+                    number_format(
+                        Payment::query()
+                            ->whereHas('member', function ($query) {
+                                $query->where('club_id', auth()->user()->club_id);
+                            })
+                            ->where('year', jdate()->getYear())
+                            ->where('month', jdate()->getMonth())
+                            ->sum('amount')
+                    )
+                }}
+            </flux:navbar.item>
+        @endif
+    </flux:navbar>
 
     <x-desktop-user-menu/>
 </flux:header>

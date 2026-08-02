@@ -62,12 +62,13 @@ new class extends Component {
 
         $this->edit = false;
 
-        Flux::toast(text: __('Profile updated.'), heading: __('Saved.'), variant: 'success');
+        Flux::toast(text: __('Profile updated.'), variant: 'success');
     }
 };
 ?>
 
 <div class="max-w-sm sm:max-w-2xl mx-auto space-y-6">
+    {{-- Personal information --}}
     <flux:card>
         <div class="flex flex-col items-center gap-4">
             @if($image)
@@ -124,7 +125,7 @@ new class extends Component {
                     {{ __('Joined at') }}
                 </span>
                 <p>
-                    {{ $member->created_at->format('Y/m/d') }}
+                    {{ jdate($member->created_at)->format('Y-m-d') }}
                 </p>
             </div>
 
@@ -152,6 +153,40 @@ new class extends Component {
                 </p>
             </div>
         </div>
+    </flux:card>
+
+    {{-- Payments --}}
+    <flux:card>
+        <flux:heading class="mb-4">
+            وضعیت پرداخت شهریه
+        </flux:heading>
+        @forelse($member->payments->where('year',jdate()->getYear()) as $payment)
+            <div class="flex justify-between items-center border-b py-3">
+                <div>
+                    <p>
+                        {{ $payment->month_name }}
+                    </p>
+                    <small class="text-zinc-700 dark:text-zinc-300">
+                        {{ $payment->amount }}
+                        تومان
+                    </small>
+                </div>
+
+                @if($member->payments->first())
+                    <flux:badge color="green">
+                        پرداخت شده
+                    </flux:badge>
+                @else
+                    <flux:badge color="red">
+                        پرداخت نشده
+                    </flux:badge>
+                @endif
+            </div>
+        @empty
+            <p class="text-zinc-700 dark:text-zinc-300">
+                هنوز پرداختی ثبت نشده است.
+            </p>
+        @endforelse
     </flux:card>
 
     @if(!$edit)
