@@ -5,7 +5,23 @@
       class="dark">
 <head>
     @include('partials.head')
+
+    <link rel="manifest" href="/manifest.json">
+
+    <meta name="theme-color" content="#111827">
+
+    <link rel="apple-touch-icon" href="{{ asset('icons/icon-512.png') }}">
 </head>
+
+<script>
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js')
+            .then(() => {
+                console.log('SW registered');
+            });
+    }
+</script>
+
 <body class="min-h-screen bg-white dark:bg-zinc-800">
 
 @php
