@@ -2,7 +2,16 @@
 
 use Illuminate\Support\Facades\Route;
 
-Route::redirect('/', '/login');
+Route::get('/', function () {
+    if (! auth()->check()) {
+        return redirect('/login');
+    }
+
+    return match (auth()->user()->role) {
+        'admin' => redirect()->route('admin.dashboard'),
+        'user' => redirect()->route('member.dashboard'),
+    };
+});
 
 Route::middleware('auth')->group(function () {
     Route::livewire('/admin/dashboard', 'admin-dashboard')

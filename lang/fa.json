@@ -1205,5 +1205,7 @@
     "Payment History": "تاریخچه پرداخت ها",
     "Dollar": "تومان",
     "No payment has been recorded yet.": "هنوز پرداختی ثبت نشده است.",
+    "Are you sure you want to delete this member?": "آیا از حذف این عضو مطمئن هستید؟",
+    "Delete Member": "حذف عضو",
     "Create Member": "ساخت عضو"
 }

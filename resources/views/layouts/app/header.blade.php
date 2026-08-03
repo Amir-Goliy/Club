@@ -1,23 +1,59 @@
-<!DOCTYPE html>
+@php use App\Models\Member; @endphp
+@php use App\Models\Payment; @endphp
+    <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" dir="{{ app()->getLocale() == 'fa' ? 'rtl' : 'ltr' }}"
       class="dark">
 <head>
     @include('partials.head')
 </head>
 <body class="min-h-screen bg-white dark:bg-zinc-800">
+
+@php
+    $isAdmin = auth()->user()->role === 'admin';
+
+    if ($isAdmin) {
+        $clubId = auth()->user()->club_id;
+        $currentYear  = jdate()->getYear();
+        $currentMonth = jdate()->getMonth();
+
+        $membersCount = Member::query()
+            ->where('club_id', $clubId)
+            ->count();
+
+        $debtorsCount = Member::query()
+            ->where('club_id', $clubId)
+            ->whereDoesntHave('payments', function ($query) use ($currentYear, $currentMonth) {
+                $query->where('year', $currentYear)
+                      ->where('month', $currentMonth);
+            })
+            ->count();
+
+        $monthlyIncome = Payment::query()
+            ->whereHas('member', function ($query) use ($clubId) {
+                $query->where('club_id', $clubId);
+            })
+            ->where('year', $currentYear)
+            ->where('month', $currentMonth)
+            ->sum('amount');
+
+        $todayFormatted = app()->getLocale() === 'fa'
+            ? jdate()->format('l d F Y')
+            : now()->translatedFormat('l, F d Y');
+    }
+@endphp
+
 <flux:header container class="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
     <flux:sidebar.toggle class="sm:hidden mr-2" icon="bars-2" inset="left"/>
 
     <x-app-logo
-        href="{{ auth()->user()->role == 'admin' ? route('admin.dashboard') : route('member.dashboard') }}"
+        href="{{ $isAdmin ? route('admin.dashboard') : route('member.dashboard') }}"
         wire:navigate
     />
 
-    <flux:navbar class="-mb-px max-sm:hidden">
-        @if(auth()->user()->role == 'admin')
+    @if($isAdmin)
+        <flux:navbar class="-mb-px max-sm:hidden">
             <flux:navbar.item icon="user">
-                {{ __('Members') }} :
-                {{ App\Models\Member::query()->where('club_id', auth()->user()->club_id)->count() }}
+                {{ __('Members') }} : {{ $membersCount }}
             </flux:navbar.item>
 
             <flux:navbar.item
@@ -27,69 +63,37 @@
             >
                 {{ __('Create Member') }}
             </flux:navbar.item>
-        @endif
-    </flux:navbar>
+        </flux:navbar>
+    @endif
 
     <flux:spacer/>
 
-    <flux:navbar class="-mb-px max-sm:hidden">
-        @if(auth()->user()->role == 'admin')
+    @if($isAdmin)
+        <flux:navbar class="-mb-px max-sm:hidden">
             <flux:navbar.item icon="calendar-days">
-                @if(app()->getLocale() === 'fa')
-                    {{ jdate()->format('l d F Y') }}
-                @else
-                    {{ now()->translatedFormat('l, F d Y') }}
-                @endif
+                {{ $todayFormatted }}
             </flux:navbar.item>
-        @endif
-    </flux:navbar>
+        </flux:navbar>
+    @endif
 
     <flux:spacer/>
 
-    <flux:navbar class="-mb-px max-sm:hidden">
-        @if(auth()->user()->role == 'admin')
-            <flux:navbar.item
-                icon="exclamation-triangle"
-            >
-                {{ __('Debtors') }} :
-                {{
-                    App\Models\Member::query()
-                        ->where('club_id', auth()->user()->club_id)
-                        ->whereDoesntHave('payments', function ($query) {
-                            $query->where('year', jdate()->getYear())
-                            ->where('month', jdate()->getMonth());
-                        })
-                        ->count()
-                }}
+    @if($isAdmin)
+        <flux:navbar class="-mb-px max-sm:hidden">
+            <flux:navbar.item icon="exclamation-triangle">
+                {{ __('Debtors') }} : {{ $debtorsCount }}
             </flux:navbar.item>
-
-            @php
-                $toggle = false;
-            @endphp
 
             <flux:checkbox
                 wire:navigate
-                x-on:click="$dispatch('debtor-toggle')"
-                wire:click="{{ $toggle = ! $toggle }}"
-                wire:model.live="{{ $toggle }}"
+                x-on:change="$dispatch('debtor-toggle', { value: $event.target.checked })"
             />
 
             <flux:navbar.item icon="banknotes">
-                {{ __('Income') }} :
-                {{
-                    number_format(
-                        App\Models\Payment::query()
-                            ->whereHas('member', function ($query) {
-                                $query->where('club_id', auth()->user()->club_id);
-                            })
-                            ->where('year', jdate()->getYear())
-                            ->where('month', jdate()->getMonth())
-                            ->sum('amount')
-                    )
-                }}
+                {{ __('Income') }} : {{ number_format($monthlyIncome) }}
             </flux:navbar.item>
-        @endif
-    </flux:navbar>
+        </flux:navbar>
+    @endif
 
     <x-desktop-user-menu/>
 </flux:header>
@@ -100,70 +104,39 @@
     <flux:sidebar.header>
         <x-app-logo
             :sidebar="true"
-            href="{{ auth()->user()->role == 'admin' ? route('admin.dashboard') : route('member.dashboard') }}"
+            href="{{ $isAdmin ? route('admin.dashboard') : route('member.dashboard') }}"
             wire:navigate
         />
         <flux:sidebar.collapse
             class="in-data-flux-sidebar-on-desktop:not-in-data-flux-sidebar-collapsed-desktop:-mr-2"/>
     </flux:sidebar.header>
 
-    <flux:sidebar.nav>
-        @if(auth()->user()->role == 'admin')
+    @if($isAdmin)
+        <flux:sidebar.nav>
             <flux:sidebar.item icon="calendar-days">
-                {{ jdate()->format('l d F Y') }}
+                {{ $todayFormatted }}
             </flux:sidebar.item>
 
             <flux:sidebar.item icon="user">
-                {{ __('Members') }} :
-                {{ App\Models\Member::query()->where('club_id', auth()->user()->club_id)->count() }}
+                {{ __('Members') }} : {{ $membersCount }}
             </flux:sidebar.item>
 
             <flux:sidebar.item icon="banknotes">
-                {{ __('Income') }} :
-                {{
-                    number_format(
-                        App\Models\Payment::query()
-                            ->whereHas('member', function ($query) {
-                                $query->where('club_id', auth()->user()->club_id);
-                            })
-                            ->where('year', jdate()->getYear())
-                            ->where('month', jdate()->getMonth())
-                            ->sum('amount')
-                    )
-                }}
+                {{ __('Income') }} : {{ number_format($monthlyIncome) }}
             </flux:sidebar.item>
-        @endif
-    </flux:sidebar.nav>
+        </flux:sidebar.nav>
 
-    <flux:sidebar.spacer/>
+        <flux:sidebar.spacer/>
 
-    <flux:sidebar.nav>
-        @if(auth()->user()->role == 'admin')
-            <div class="flex items-center">
-                <flux:navbar.item
-                    icon="exclamation-triangle"
-                >
-                    {{ __('Debtors') }} :
-                    {{
-                        App\Models\Member::query()
-                            ->where('club_id', auth()->user()->club_id)
-                            ->whereDoesntHave('payments', function ($query) {
-                                $query->where('year', jdate()->getYear())
-                                ->where('month', jdate()->getMonth());
-                            })
-                            ->count()
-                    }}
-                </flux:navbar.item>
-
-                @php
-                    $toggle = false;
-                @endphp
+        <flux:sidebar.nav>
+            <div class="flex items-center gap-2">
+                <flux:sidebar.item icon="exclamation-triangle">
+                    {{ __('Debtors') }} : {{ $debtorsCount }}
+                </flux:sidebar.item>
 
                 <flux:checkbox
                     wire:navigate
-                    x-on:click="$dispatch('debtor-toggle')"
-                    wire:click="{{ $toggle = ! $toggle }}"
-                    wire:model.live="{{ $toggle }}"
+                    x-on:change="$dispatch('debtor-toggle', $event.target.checked)"
                 />
             </div>
 
@@ -174,8 +147,8 @@
             >
                 {{ __('Create Member') }}
             </flux:sidebar.item>
-        @endif
-    </flux:sidebar.nav>
+        </flux:sidebar.nav>
+    @endif
 </flux:sidebar>
 
 {{ $slot }}
@@ -187,6 +160,5 @@
 @endpersist
 
 @fluxScripts
-
 </body>
 </html>

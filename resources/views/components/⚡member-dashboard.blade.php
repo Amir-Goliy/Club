@@ -1,6 +1,8 @@
 <?php
 
 use App\Models\Member;
+use Carbon\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -10,16 +12,17 @@ new class extends Component {
 
     public Member $member;
 
-    public bool $edit = false;
+    public bool $editing = false;
 
-    public $image;
-    public string $phone;
+    public $image = null;
+
+    public ?string $phone = null;
 
     public function mount(): void
     {
-        $this->member = auth()->user()->member;
+        $this->member = auth()->user()->member()->with('club')->firstOrFail();
 
-        $this->phone = $this->member->phone;
+        $this->loadForm();
     }
 
     protected function rules(): array
@@ -30,14 +33,27 @@ new class extends Component {
         ];
     }
 
-    public function editing(): void
+    public function getCurrentYearPaymentsProperty(): Collection
     {
-        $this->edit = true;
+        return $this->member
+            ->payments()
+            ->where('year', jdate()->getYear())
+            ->orderByDesc('month')
+            ->get();
+    }
+
+    public function startEditing(): void
+    {
+        $this->editing = true;
     }
 
     public function cancel(): void
     {
-        $this->edit = false;
+        $this->editing = false;
+
+        $this->reset(['image']);
+
+        $this->loadForm();
 
         $this->resetValidation();
     }
@@ -46,29 +62,47 @@ new class extends Component {
     {
         $validated = $this->validate();
 
-        if ($this->member->image)
-            $validated['image'] = $this->member->image;
+        unset($validated['image']);
 
         if ($this->image) {
-            if ($this->member->image)
-                Storage::disk('public')->delete($this->member->image);
-
-            $validated['image'] = $this->image->store('image', 'public');
+            $validated['image'] = $this->updateImage();
         }
 
         $this->member->update($validated);
 
         $this->member->refresh();
 
-        $this->edit = false;
+        $this->editing = false;
+        $this->image = null;
 
-        Flux::toast(text: __('Profile updated.'), variant: 'success');
+        Flux::toast(
+            text: __('Profile updated.'),
+            variant: 'success'
+        );
+    }
+
+    protected function updateImage(): string
+    {
+        $oldImage = $this->member->image;
+
+        $newImage = $this->image->store('image', 'public');
+
+        if ($oldImage) {
+            Storage::disk('public')->delete($oldImage);
+        }
+
+        return $newImage;
+    }
+
+    protected function loadForm(): void
+    {
+        $this->phone = $this->member->phone;
     }
 };
+
 ?>
 
 <div class="max-w-sm sm:max-w-2xl mx-auto space-y-6">
-    {{-- Personal information --}}
     <flux:card>
         <div class="flex flex-col items-center gap-4">
             @if($image)
@@ -85,69 +119,55 @@ new class extends Component {
                 >
             @endif
 
-            @if($edit)
+            @if($editing)
                 <flux:input
                     type="file"
                     accept=".png,.jpg,.jpeg"
-                    wire:model.live="image"
+                    wire:model="image"
                     label="{{ __('Profile image') }}"
                 />
             @endif
 
             <h1 class="text-2xl font-bold">
-                {{ $member->first_name }}
-                {{ $member->last_name }}
+                {{ $member->first_name }} {{ $member->last_name }}
             </h1>
-            <p>
-                {{ __('Club member') }}
-                {{ $member->club->name }}
-            </p>
+
+            <p>{{ __('Club member') }} {{ $member->club->name }}</p>
         </div>
     </flux:card>
 
     <flux:card>
-        <flux:heading class="mb-6">
-            {{ __('Personal information') }}
-        </flux:heading>
+        <flux:heading class="mb-6">{{ __('Personal information') }}</flux:heading>
 
         <div class="grid sm:grid-cols-2 gap-6">
             <div>
                 <span class="text-sm text-zinc-700 dark:text-zinc-300">
                     {{ __('National code') }}
                 </span>
-                <p>
-                    {{ $member->national_code }}
-                </p>
+                <p>{{ $member->national_code }}</p>
             </div>
 
             <div>
                 <span class="text-sm text-zinc-700 dark:text-zinc-300">
                     {{ __('Joined at') }}
                 </span>
-
-                @if(app()->getLocale() === 'fa')
-                    <p>
-                        {{ jdate($member->created_at)->format('Y/m/d') }}
-                    </p>
-                @else
-                    <p>
-                        {{ $member->created_at->format('F d, Y') }}
-                    </p>
-                @endif
+                <p>
+                    {{ app()->getLocale() === 'fa'
+                        ? jdate($member->created_at)->format('Y/m/d')
+                        : $member->created_at->format('F d, Y')
+                    }}
+                </p>
             </div>
 
             <div>
                 <span class="text-sm text-zinc-700 dark:text-zinc-300">
                     {{ __('Phone') }}
                 </span>
-                @if($edit)
-                    <flux:input
-                        wire:model.live="phone"
-                    />
+
+                @if($editing)
+                    <flux:input wire:model="phone"/>
                 @else
-                    <p>
-                        {{ $member->phone }}
-                    </p>
+                    <p>{{ $member->phone }}</p>
                 @endif
             </div>
 
@@ -155,49 +175,35 @@ new class extends Component {
                 <span class="text-sm text-zinc-700 dark:text-zinc-300">
                     {{ __('Birth date') }}
                 </span>
-                @if(app()->getLocale() === 'fa')
-                    <p>
-                        {{ jdate($member->birth_date)->format('Y/m/d') }}
-                    </p>
-                @else
-                    <p>
-                        {{ \Carbon\Carbon::parse($member->birth_date)->format('F d, Y') }}
-                    </p>
-                @endif
+                <p>
+                    {{ app()->getLocale() === 'fa'
+                        ? jdate($member->birth_date)->format('Y/m/d')
+                        : Carbon::parse($member->birth_date)->format('F d, Y')
+                    }}
+                </p>
             </div>
         </div>
     </flux:card>
 
-    {{-- Payments --}}
     <flux:card>
-        <flux:heading class="mb-4">
-            {{ __('Payment History') }}
-        </flux:heading>
-        @forelse($member->payments->where('year',jdate()->getYear()) as $payment)
-            <div class="flex justify-between items-center border-b py-3">
+        <flux:heading class="mb-4">{{ __('Payment History') }}</flux:heading>
+
+        @forelse($this->currentYearPayments as $payment)
+            <div class="flex justify-between items-center border-b py-3" wire:key="payment-{{ $payment->id }}">
                 <div>
                     <p>
-                        @if(app()->getLocale() === 'fa')
-                            {{ $payment->month_name }}
-                        @else
-                            {{ \Carbon\Carbon::create()->month($payment->month)->format('F') }}
-                        @endif
+                        {{ app()->getLocale() === 'fa'
+                            ? $payment->month_name
+                            : Carbon::create()->month($payment->month)->format('F')
+                        }}
                     </p>
+
                     <small class="text-zinc-700 dark:text-zinc-300">
-                        {{ $payment->amount }}
-                        {{ __('Dollar') }}
+                        {{ $payment->amount }} {{ __('Dollar') }}
                     </small>
                 </div>
 
-                @if($member->payments->first())
-                    <flux:badge color="green">
-                        {{ __('Paid') }}
-                    </flux:badge>
-                @else
-                    <flux:badge color="red">
-                        {{ __('Unpaid') }}
-                    </flux:badge>
-                @endif
+                <flux:badge color="green">{{ __('Paid') }}</flux:badge>
             </div>
         @empty
             <p class="text-zinc-700 dark:text-zinc-300">
@@ -206,30 +212,19 @@ new class extends Component {
         @endforelse
     </flux:card>
 
-    @if(!$edit)
-        <div class="flex">
-            <flux:button
-                wire:click="editing"
-                variant="primary"
-            >
+    <div class="flex gap-3">
+        @if(!$editing)
+            <flux:button wire:click="startEditing" variant="primary">
                 {{ __('Edit profile') }}
             </flux:button>
-        </div>
-    @else
-        <div class="flex gap-3">
-            <flux:button
-                wire:click="cancel"
-                variant="ghost"
-            >
+        @else
+            <flux:button wire:click="cancel" variant="ghost">
                 {{ __('Cancel') }}
             </flux:button>
 
-            <flux:button
-                wire:click="update"
-                variant="primary"
-            >
+            <flux:button wire:click="update" variant="primary" wire:loading.attr="disabled">
                 {{ __('Save changes') }}
             </flux:button>
-        </div>
-    @endif
+        @endif
+    </div>
 </div>
