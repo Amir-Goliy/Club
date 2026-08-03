@@ -8,7 +8,7 @@ self.addEventListener("install", event => {
             let assets = [];
 
             try {
-                const response = await fetch("/pwa-assets.json");
+                const response = await fetch("/api/pwa-assets.json");
 
                 if (response.ok) {
                     const data = await response.json();

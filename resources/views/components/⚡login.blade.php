@@ -207,6 +207,7 @@ class extends Component {
                 :label="__('National code')"
                 required
                 autofocus
+                autocomplete="national-code"
                 type="number"
                 :placeholder="__('National code')"
             />
