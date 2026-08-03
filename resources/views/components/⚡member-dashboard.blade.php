@@ -28,8 +28,17 @@ new class extends Component {
     protected function rules(): array
     {
         return [
-            'phone' => 'nullable|digits:11',
-            'image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'phone' => [
+                'nullable',
+                'digits:11',
+            ],
+
+            'image' => [
+                'nullable',
+                'image',
+                'mimes:jpg,jpeg,png',
+                'max:2048',
+            ],
         ];
     }
 

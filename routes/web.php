@@ -2,16 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    if (! auth()->check()) {
-        return redirect('/login');
-    }
-
-    return match (auth()->user()->role) {
-        'admin' => redirect()->route('admin.dashboard'),
-        'user' => redirect()->route('member.dashboard'),
-    };
-});
+Route::livewire('/', 'login')->name('login');
 
 Route::middleware('auth')->group(function () {
     Route::livewire('/admin/dashboard', 'admin-dashboard')
@@ -23,7 +14,13 @@ Route::middleware('auth')->group(function () {
         ->middleware('role:user');
 });
 
-Route::livewire('/activate-account', 'pages::auth.activate-account')
-    ->name('activate.account');
+Route::post('/logout', function () {
+    Auth::logout();
+
+    session()->invalidate();
+    session()->regenerateToken();
+
+    return redirect('/');
+})->name('logout');
 
 require __DIR__.'/settings.php';

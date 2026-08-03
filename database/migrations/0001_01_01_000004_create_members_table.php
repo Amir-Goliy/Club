@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('image')->nullable();
             $table->string('first_name');
             $table->string('last_name');
-            $table->string('national_code');
+            $table->string('national_code')->unique();
             $table->date('birth_date')->nullable();
             $table->string('phone')->nullable();
             $table->timestamps();
