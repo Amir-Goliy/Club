@@ -1,7 +1,12 @@
 <?php
 
+use App\Models\Club;
 use App\Models\User;
-use Laravel\Fortify\Features;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
+use Livewire\Livewire;
+
+uses(RefreshDatabase::class);
 
 test('login screen can be rendered', function () {
     $response = $this->get(route('login'));
@@ -9,59 +14,64 @@ test('login screen can be rendered', function () {
     $response->assertOk();
 });
 
-test('users can authenticate using the login screen', function () {
-    $user = User::factory()->create();
+test('existing user is moved to password step', function () {
+    $club = Club::factory()->create();
 
-    $response = $this->post(route('login.store'), [
-        'email' => $user->email,
-        'password' => 'password',
+    User::factory()->create([
+        'club_id' => $club->id,
+        'national_code' => '1234567890',
+        'password' => Hash::make('password'),
     ]);
 
-    $response
-        ->assertSessionHasNoErrors()
-        ->assertRedirect(route('dashboard', absolute: false));
-
-    $this->assertAuthenticated();
+    Livewire::test('⚡login')
+        ->set('national_code', '1234567890')
+        ->call('checkNationalCode')
+        ->assertSet('step', 2);
 });
 
-test('users can not authenticate with invalid password', function () {
-    $user = User::factory()->create();
-
-    $response = $this->post(route('login.store'), [
-        'email' => $user->email,
-        'password' => 'wrong-password',
-    ]);
-
-    $response->assertSessionHasErrorsIn('email');
-
-    $this->assertGuest();
+test('invalid national code shows an error', function () {
+    Livewire::test('⚡login')
+        ->set('national_code', '1234567890')
+        ->call('checkNationalCode')
+        ->assertHasErrors(['national_code']);
 });
 
-test('users with two factor enabled are redirected to two factor challenge', function () {
-    $this->skipUnlessFortifyHas(Features::twoFactorAuthentication());
+test('user can authenticate with correct password', function () {
+    $club = Club::factory()->create();
 
-    Features::twoFactorAuthentication([
-        'confirm' => true,
-        'confirmPassword' => true,
+    $user = User::factory()->create([
+        'club_id' => $club->id,
+        'national_code' => '1234567890',
+        'password' => Hash::make('password'),
+        'role' => 'user',
     ]);
 
-    $user = User::factory()->withTwoFactor()->create();
+    Livewire::test('⚡login')
+        ->set('national_code', '1234567890')
+        ->set('step', 2)
+        ->set('password', 'password')
+        ->call('login')
+        ->assertRedirect(route('member.dashboard'));
 
-    $response = $this->post(route('login.store'), [
-        'email' => $user->email,
-        'password' => 'password',
-    ]);
-
-    $response->assertRedirect(route('two-factor.login'));
-    $this->assertGuest();
+    $this->assertAuthenticatedAs($user);
 });
 
-test('users can logout', function () {
-    $user = User::factory()->create();
+test('user cannot authenticate with incorrect password', function () {
+    $club = Club::factory()->create();
 
-    $response = $this->actingAs($user)->post(route('logout'));
+    User::factory()->create([
+        'club_id' => $club->id,
+        'national_code' => '1234567890',
+        'password' => Hash::make('password'),
+        'role' => 'user',
+    ]);
 
-    $response->assertRedirect(route('home'));
+    Livewire::test('⚡login')
+        ->set('national_code', '1234567890')
+        ->set('step', 2)
+        ->set('password', 'wrong-password')
+        ->call('login')
+        ->assertHasErrors(['password']);
 
     $this->assertGuest();
 });

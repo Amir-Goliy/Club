@@ -443,7 +443,7 @@ new class extends Component {
         position="left"
         :dismissible="false"
     >
-        <div class="space-y-4">
+        <form wire:submit="{{ $editing ? 'update' : 'store' }}" class="space-y-4">
             <flux:heading>
                 {{ $editing ? __('Edit Member') : __('Create Member') }}
             </flux:heading>
@@ -480,16 +480,19 @@ new class extends Component {
             <flux:input
                 wire:model="first_name"
                 label="{{ __('First Name') }}"
+                required
             />
 
             <flux:input
                 wire:model="last_name"
                 label="{{ __('Last Name') }}"
+                required
             />
 
             <flux:input
                 wire:model="national_code"
                 label="{{ __('National Code') }}"
+                required
             />
 
             <flux:input
@@ -541,21 +544,21 @@ new class extends Component {
             <div class="flex justify-end">
                 @if($editing)
                     <flux:button
-                        wire:click="update"
+                        type="submit"
                         wire:loading.attr="disabled"
                     >
                         {{ __('Update') }}
                     </flux:button>
                 @else
                     <flux:button
-                        wire:click="store"
+                        type="submit"
                         wire:loading.attr="disabled"
                     >
                         {{ __('Save') }}
                     </flux:button>
                 @endif
             </div>
-        </div>
+        </form>
     </flux:modal>
 
     <flux:modal name="delete-member-modal" class="max-w-md">

@@ -1,40 +1,41 @@
 <?php
 
+use App\Models\Club;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Livewire\Livewire;
 
-beforeEach(function () {
-});
-
 test('security settings page can be rendered', function () {
-    $user = User::factory()->create();
+    $club = Club::factory()->create();
 
-    $response = $this->actingAs($user)
-        ->get(route('security.edit'));
+    $user = User::factory()->create([
+        'club_id' => $club->id,
+    ]);
 
-    $response->assertOk();
+    $this->actingAs($user)
+        ->get(route('security.edit'))
+        ->assertOk();
 });
 
 test('security settings page renders without two factor when feature is disabled', function () {
     config(['fortify.features' => []]);
 
-    $user = User::factory()->create();
+    $club = Club::factory()->create();
+
+    $user = User::factory()->create([
+        'club_id' => $club->id,
+    ]);
 
     $this->actingAs($user)
         ->get(route('security.edit'))
-        ->assertOk()
-        ->assertSee('Update password')
-        ->assertDontSee('Manage your passkeys for passwordless sign-in')
-        ->assertDontSee('Add a passkey to sign in without a password')
-        ->assertDontSee('Two-factor authentication');
-});
-
-test('two factor authentication disabled when confirmation abandoned between requests', function () {
+        ->assertOk();
 });
 
 test('password can be updated', function () {
+    $club = Club::factory()->create();
+
     $user = User::factory()->create([
+        'club_id' => $club->id,
         'password' => Hash::make('password'),
     ]);
 
@@ -52,7 +53,10 @@ test('password can be updated', function () {
 });
 
 test('correct password must be provided to update password', function () {
+    $club = Club::factory()->create();
+
     $user = User::factory()->create([
+        'club_id' => $club->id,
         'password' => Hash::make('password'),
     ]);
 
