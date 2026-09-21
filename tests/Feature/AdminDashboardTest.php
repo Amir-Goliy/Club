@@ -573,3 +573,28 @@ test('admin can filter debtors', function () {
         ->assertSee('Debtor')
         ->assertDontSee('Paid');
 });
+
+test('admin cannot update a member from another club', function () {
+    $club1 = Club::factory()->create();
+    $club2 = Club::factory()->create();
+
+    $admin = User::factory()->create([
+        'club_id' => $club1->id,
+        'role' => 'admin',
+    ]);
+
+    $member = Member::factory()->create([
+        'club_id' => $club2->id,
+        'first_name' => 'Other',
+    ]);
+
+    $this->actingAs($admin);
+
+    Livewire::test('⚡admin-dashboard')
+        ->set('editing', $member)
+        ->set('first_name', 'Hacked')
+        ->call('update')
+        ->assertStatus(403);
+
+    expect($member->fresh()->first_name)->toBe('Other');
+});
