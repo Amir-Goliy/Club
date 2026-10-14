@@ -67,11 +67,13 @@ class User extends Authenticatable
             : $initials;
     }
 
+    /** @return BelongsTo<Club, $this> */
     public function club(): BelongsTo
     {
         return $this->belongsTo(Club::class);
     }
 
+    /** @return HasOne<Member, $this> */
     public function member(): HasOne
     {
         return $this->hasOne(Member::class);

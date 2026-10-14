@@ -475,13 +475,9 @@ test('admin cannot edit a member from another club', function () {
 
     $this->actingAs($admin);
 
-    $component = Livewire::test('⚡admin-dashboard');
-
-    try {
-        $component->call('edit', $member->id);
-    } catch (\Throwable $e) {
-        expect($e->getCode())->toBe(403);
-    }
+    Livewire::test('⚡admin-dashboard')
+        ->call('edit', $member->id)
+        ->assertStatus(403);
 
     expect($member->fresh()->club_id)->toBe($otherClub->id);
 });
@@ -501,13 +497,9 @@ test('admin cannot delete a member from another club', function () {
 
     $this->actingAs($admin);
 
-    $component = Livewire::test('⚡admin-dashboard');
-
-    try {
-        $component->call('confirmDelete', $member->id);
-    } catch (\Throwable $e) {
-        expect($e->getCode())->toBe(403);
-    }
+    Livewire::test('⚡admin-dashboard')
+        ->call('confirmDelete', $member->id)
+        ->assertStatus(403);
 
     expect(Member::find($member->id))->not->toBeNull();
 });
