@@ -34,9 +34,23 @@ Route::get('/manifest.json', function () {
 })->name('manifest.json');
 
 Route::get('/pwa-assets.json', function () {
-    $manifest = json_decode(
-        file_get_contents(public_path('build/manifest.json')),
-        true
+    $manifestPath = public_path('build/manifest.json');
+
+    abort_unless(is_file($manifestPath), 500, 'Vite manifest not found.');
+
+    $contents = file_get_contents($manifestPath);
+
+    abort_if($contents === false, 500, 'Unable to read Vite manifest.');
+
+    $manifest = json_decode($contents, true, 512, JSON_THROW_ON_ERROR);
+
+    abort_unless(
+        isset(
+            $manifest['resources/css/app.css']['file'],
+            $manifest['resources/js/app.js']['file'],
+        ),
+        500,
+        'Required Vite assets not found.',
     );
 
     return response()->json([
@@ -45,5 +59,4 @@ Route::get('/pwa-assets.json', function () {
             '/build/'.$manifest['resources/js/app.js']['file'],
         ],
     ]);
-
-});
+})->name('pwa-assets.json');

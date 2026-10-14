@@ -5,6 +5,8 @@ namespace App\Models;
 use Database\Factories\ClubFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Club extends Model
 {
@@ -19,12 +21,14 @@ class Club extends Model
         'logo',
     ];
 
-    public function user()
+    /** @return HasOne<User, $this> */
+    public function user(): HasOne
     {
         return $this->hasOne(User::class);
     }
 
-    public function members()
+    /** @return HasMany<Member, $this> */
+    public function members(): HasMany
     {
         return $this->hasMany(Member::class);
     }

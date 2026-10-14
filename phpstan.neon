@@ -3,6 +3,11 @@ includes:
     - vendor/nesbot/carbon/extension.neon
 
 parameters:
+    ignoreErrors:
+            - identifier: trait.unused
+              path: app/Concerns/PasswordValidationRules.php
+            - identifier: trait.unused
+              path: app/Concerns/ProfileValidationRules.php
     paths:
         - app/
         - bootstrap/app.php

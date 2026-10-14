@@ -76,6 +76,15 @@ class extends Component {
             ->first();
 
         if ($this->member) {
+            if ($this->member->account_approved_at === null) {
+                $this->addError(
+                    'national_code',
+                    __('Your account has not been approved by the club administrator yet.')
+                );
+
+                return;
+            }
+
             $this->step = 3;
             return;
         }

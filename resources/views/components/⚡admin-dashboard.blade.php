@@ -1,3 +1,4 @@
+
 <?php
 
 use App\Models\Member;
@@ -11,8 +12,7 @@ use Livewire\WithFileUploads;
 use Livewire\WithPagination;
 
 new class extends Component {
-    use WithPagination;
-    use WithFileUploads;
+    use WithPagination, WithFileUploads;
 
     public ?Member $editing = null;
     public ?Member $deleting = null;
@@ -32,63 +32,30 @@ new class extends Component {
     public int $payment_month = 1;
 
     public bool $debtors = false;
+    public bool $account_approved = false;
 
     public function mount(): void
     {
-        abort_unless(auth()->user()->role === 'admin', 403);
+        abort_unless(auth()->user()?->role === 'admin', 403);
     }
 
     protected function rules(): array
     {
         return [
-            'image' => [
-                'nullable',
-                'image',
-                'max:2048',
-            ],
-
-            'first_name' => [
-                'required',
-                'string',
-                'max:255',
-                'not_regex:/\d/',
-            ],
-
-            'last_name' => [
-                'required',
-                'string',
-                'max:255',
-                'not_regex:/\d/',
-            ],
-
+            'image' => ['nullable', 'image', 'max:2048'],
+            'first_name' => ['required', 'string', 'max:255', 'not_regex:/\d/'],
+            'last_name' => ['required', 'string', 'max:255', 'not_regex:/\d/'],
             'national_code' => [
                 'required',
                 'digits:10',
                 Rule::unique('members', 'national_code')
                     ->ignore($this->editing?->id),
             ],
-
-            'birth_date' => [
-                'nullable',
-                'date',
-            ],
-
-            'phone' => [
-                'nullable',
-                'digits:11',
-            ],
-
-            'amount' => [
-                'nullable',
-                'numeric',
-                'min:0',
-            ],
-
-            'payment_month' => [
-                'required',
-                'integer',
-                'between:1,12',
-            ],
+            'birth_date' => ['nullable', 'date'],
+            'phone' => ['nullable', 'digits:11'],
+            'amount' => ['nullable', 'numeric', 'min:0'],
+            'payment_month' => ['required', 'integer', 'between:1,12'],
+            'account_approved' => ['boolean'],
         ];
     }
 
@@ -97,9 +64,9 @@ new class extends Component {
         return Member::query()
             ->where('club_id', auth()->user()->club_id)
             ->with([
-                'payments' => fn($query) => $query
+                'payments' => fn ($query) => $query
                     ->where('year', jdate()->getYear())
-                    ->where('month', jdate()->getMonth())
+                    ->where('month', jdate()->getMonth()),
             ])
             ->when($this->search, function ($query) {
                 $query->where(function ($query) {
@@ -130,7 +97,6 @@ new class extends Component {
     public function openCreateUser(): void
     {
         $this->resetForm();
-
         $this->payment_month = jdate()->getMonth();
 
         $this->modal('member-modal')->show();
@@ -145,25 +111,21 @@ new class extends Component {
 
     public function edit(Member $member): void
     {
-        abort_unless($member->club_id === auth()->user()->club_id, 403);
+        $member = $this->findMemberInClub($member->id);
 
         $this->resetForm();
 
         $this->editing = $member;
         $this->oldImage = $member->image;
 
-        $this->fill(
-            $member->only([
-                'first_name',
-                'last_name',
-                'national_code',
-                'birth_date',
-                'phone',
-            ])
-        );
+        $this->first_name = $member->first_name;
+        $this->last_name = $member->last_name;
+        $this->national_code = $member->national_code;
+        $this->birth_date = $member->birth_date;
+        $this->phone = $member->phone;
+        $this->account_approved = $member->account_approved_at !== null;
 
         $this->payment_month = jdate()->getMonth();
-
         $this->updatedPaymentMonth();
 
         $this->modal('member-modal')->show();
@@ -171,12 +133,13 @@ new class extends Component {
 
     public function updatedPaymentMonth(): void
     {
-        if (!$this->editing) {
+        if (! $this->editing) {
             return;
         }
 
-        $this->amount = $this->editing
-            ->payments()
+        $member = $this->findMemberInClub($this->editing->id);
+
+        $this->amount = $member->payments()
             ->where('year', jdate()->getYear())
             ->where('month', $this->payment_month)
             ->value('amount');
@@ -187,15 +150,16 @@ new class extends Component {
         $validated = $this->validate();
 
         $memberData = collect($validated)
-            ->except(['amount', 'payment_month'])
+            ->except(['amount', 'payment_month', 'account_approved'])
             ->toArray();
 
         $memberData['club_id'] = auth()->user()->club_id;
+        $memberData['account_approved_at'] = $this->account_approved
+            ? now()
+            : null;
 
         if ($image = $this->saveImage()) {
             $memberData['image'] = $image;
-        } else {
-            unset($memberData['image']);
         }
 
         $member = Member::query()->create($memberData);
@@ -207,34 +171,51 @@ new class extends Component {
 
     public function update(): void
     {
-        abort_unless($this->editing?->club_id === auth()->user()->club_id, 403);
+        if (! $this->editing) {
+            return;
+        }
 
+        $member = $this->findMemberInClub($this->editing->id);
         $validated = $this->validate();
 
         $memberData = collect($validated)
-            ->except(['amount', 'payment_month', 'image'])
+            ->except(['amount', 'payment_month', 'image', 'account_approved'])
             ->toArray();
+
+        $memberData['account_approved_at'] = $this->account_approved
+            ? ($member->account_approved_at ?? now())
+            : null;
 
         if ($image = $this->saveImage()) {
             $memberData['image'] = $image;
         }
 
-        $this->editing->update($memberData);
+        $member->update($memberData);
 
-        $this->savePayment($this->editing);
+        $this->savePayment($member);
 
         $this->closeMemberModal(__('Member updated.'));
     }
 
+    protected function findMemberInClub(int $id): Member
+    {
+        $member = Member::query()
+            ->where('club_id', auth()->user()->club_id)
+            ->find($id);
+
+        abort_if($member === null, 403);
+
+        return $member;
+    }
+
     protected function saveImage(): ?string
     {
-        if (!$this->image) {
+        if (! $this->image) {
             return null;
         }
 
         if ($this->editing?->image) {
-            Storage::disk('public')
-                ->delete($this->editing->image);
+            Storage::disk('public')->delete($this->editing->image);
         }
 
         return $this->image->store('image', 'public');
@@ -255,37 +236,36 @@ new class extends Component {
             [
                 'amount' => $this->amount,
                 'paid_at' => now(),
-            ]
+            ],
         );
     }
 
     public function confirmDelete(Member $member): void
     {
-        abort_unless($member->club_id === auth()->user()->club_id, 403);
-
-        $this->deleting = $member;
+        $this->deleting = $this->findMemberInClub($member->id);
 
         $this->modal('delete-member-modal')->show();
     }
 
     public function delete(): void
     {
-        if (!$this->deleting) {
+        if (! $this->deleting) {
             return;
         }
 
-        if ($this->deleting->image) {
-            Storage::disk('public')
-                ->delete($this->deleting->image);
+        $member = $this->findMemberInClub($this->deleting->id);
+
+        if ($member->image) {
+            Storage::disk('public')->delete($member->image);
         }
 
-        $this->deleting->delete();
+        $member->delete();
 
         $this->modal('delete-member-modal')->close();
 
         Flux::toast(
             text: __('Member deleted.'),
-            variant: 'success'
+            variant: 'success',
         );
 
         $this->deleting = null;
@@ -297,7 +277,7 @@ new class extends Component {
 
         Flux::toast(
             text: $message,
-            variant: 'success'
+            variant: 'success',
         );
 
         $this->resetForm();
@@ -315,9 +295,12 @@ new class extends Component {
             'birth_date',
             'phone',
             'amount',
+            'account_approved',
         ]);
 
-        $this->clearValidation();
+        $this->payment_month = jdate()->getMonth();
+
+        $this->resetValidation();
     }
 };
 
@@ -339,37 +322,15 @@ new class extends Component {
         :paginate="$this->members"
     >
         <flux:table.columns>
-            <flux:table.column align="center">
-                {{ __('Image') }}
-            </flux:table.column>
-
-            <flux:table.column align="center">
-                {{ __('First Name') }}
-            </flux:table.column>
-
-            <flux:table.column align="center">
-                {{ __('Last Name') }}
-            </flux:table.column>
-
-            <flux:table.column align="center">
-                {{ __('National Code') }}
-            </flux:table.column>
-
-            <flux:table.column align="center">
-                {{ __('Birth date') }}
-            </flux:table.column>
-
-            <flux:table.column align="center">
-                {{ __('Phone') }}
-            </flux:table.column>
-
-            <flux:table.column align="center">
-                {{ __('Payment') }}
-            </flux:table.column>
-
-            <flux:table.column align="center">
-                {{ __('Actions') }}
-            </flux:table.column>
+            <flux:table.column align="center">{{ __('Image') }}</flux:table.column>
+            <flux:table.column align="center">{{ __('First Name') }}</flux:table.column>
+            <flux:table.column align="center">{{ __('Last Name') }}</flux:table.column>
+            <flux:table.column align="center">{{ __('National Code') }}</flux:table.column>
+            <flux:table.column align="center">{{ __('Birth date') }}</flux:table.column>
+            <flux:table.column align="center">{{ __('Phone') }}</flux:table.column>
+            <flux:table.column align="center">{{ __('Payment') }}</flux:table.column>
+            <flux:table.column align="center">{{ __('Account status') }}</flux:table.column>
+            <flux:table.column align="center">{{ __('Actions') }}</flux:table.column>
         </flux:table.columns>
 
         <flux:table.rows>
@@ -383,21 +344,16 @@ new class extends Component {
                                 alt="{{ $member->first_name }}"
                             >
                         @else
-                            <div
-                                class="w-15 h-15 rounded-xl bg-zinc-100 dark:bg-zinc-700 flex items-center justify-center">
+                            <div class="w-15 h-15 rounded-xl bg-zinc-100 dark:bg-zinc-700 flex items-center justify-center">
                                 -
                             </div>
                         @endif
                     </flux:table.cell>
 
                     <flux:table.cell>{{ $member->first_name }}</flux:table.cell>
-
                     <flux:table.cell>{{ $member->last_name }}</flux:table.cell>
-
                     <flux:table.cell>{{ $member->national_code }}</flux:table.cell>
-
                     <flux:table.cell>{{ $member->birth_date }}</flux:table.cell>
-
                     <flux:table.cell>{{ $member->phone }}</flux:table.cell>
 
                     <flux:table.cell>
@@ -405,6 +361,14 @@ new class extends Component {
                             <flux:badge color="green">{{ __('Paid') }}</flux:badge>
                         @else
                             <flux:badge color="red">{{ __('Unpaid') }}</flux:badge>
+                        @endif
+                    </flux:table.cell>
+
+                    <flux:table.cell>
+                        @if($member->account_approved_at)
+                            <flux:badge color="green">{{ __('Approved') }}</flux:badge>
+                        @else
+                            <flux:badge color="zinc">{{ __('Not approved') }}</flux:badge>
                         @endif
                     </flux:table.cell>
 
@@ -420,6 +384,7 @@ new class extends Component {
                             <flux:button
                                 wire:click="confirmDelete({{ $member->id }})"
                                 variant="danger"
+                                wire:loading.attr="disabled"
                             >
                                 {{ __('Delete') }}
                             </flux:button>
@@ -428,14 +393,13 @@ new class extends Component {
                 </flux:table.row>
             @empty
                 <flux:table.row>
-                    <flux:table.cell colspan="8">
+                    <flux:table.cell colspan="9">
                         {{ __('No members found.') }}
                     </flux:table.cell>
                 </flux:table.row>
             @endforelse
         </flux:table.rows>
     </flux:table>
-
 
     <flux:modal
         name="member-modal"
@@ -474,9 +438,19 @@ new class extends Component {
                 </div>
             @endif
 
-            <flux:separator/>
+            <flux:separator />
+
+            <flux:heading>{{ __('Account approval') }}</flux:heading>
+
+            <flux:checkbox
+                wire:model="account_approved"
+                label="{{ $account_approved ? __('Approved') : __('Not approved') }}"
+            />
+
+            <flux:separator />
 
             <flux:heading>{{ __('Member information') }}</flux:heading>
+
             <flux:input
                 wire:model="first_name"
                 label="{{ __('First Name') }}"
@@ -506,10 +480,15 @@ new class extends Component {
                 label="{{ __('Phone') }}"
             />
 
-            <flux:separator/>
+            <flux:separator />
 
             <flux:heading>{{ __('Payment Information') }}</flux:heading>
-            <flux:input type="number" wire:model="amount" label="{{ __('Amount') }}"/>
+
+            <flux:input
+                type="number"
+                wire:model="amount"
+                label="{{ __('Amount') }}"
+            />
 
             <flux:select wire:model.live="payment_month" label="{{ __('Month') }}">
                 @if(app()->getLocale() === 'fa')
@@ -542,21 +521,12 @@ new class extends Component {
             </flux:select>
 
             <div class="flex justify-end">
-                @if($editing)
-                    <flux:button
-                        type="submit"
-                        wire:loading.attr="disabled"
-                    >
-                        {{ __('Update') }}
-                    </flux:button>
-                @else
-                    <flux:button
-                        type="submit"
-                        wire:loading.attr="disabled"
-                    >
-                        {{ __('Save') }}
-                    </flux:button>
-                @endif
+                <flux:button
+                    type="submit"
+                    wire:loading.attr="disabled"
+                >
+                    {{ $editing ? __('Update') : __('Save') }}
+                </flux:button>
             </div>
         </form>
     </flux:modal>
@@ -565,15 +535,11 @@ new class extends Component {
         <div class="space-y-4">
             <flux:heading>{{ __('Delete Member') }}</flux:heading>
 
-            <p>
-                {{ __('Are you sure you want to delete this member?') }}
-            </p>
+            <p>{{ __('Are you sure you want to delete this member?') }}</p>
 
             <div class="flex justify-end gap-2">
                 <flux:modal.close>
-                    <flux:button>
-                        {{ __('Cancel') }}
-                    </flux:button>
+                    <flux:button>{{ __('Cancel') }}</flux:button>
                 </flux:modal.close>
 
                 <flux:button

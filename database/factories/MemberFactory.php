@@ -20,7 +20,7 @@ class MemberFactory extends Factory
         return [
             'first_name' => fake()->firstName(),
             'last_name' => fake()->lastName(),
-            'phone' => fake()->phoneNumber(),
+            'phone' => fake()->numberBetween(11111111111, 99999999999),
             'national_code' => fake()->numberBetween(1111111111, 9999999999),
             'birth_date' => fake()->date(),
         ];

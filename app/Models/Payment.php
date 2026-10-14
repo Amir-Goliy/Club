@@ -23,11 +23,13 @@ class Payment extends Model
         'paid_at',
     ];
 
+    /** @return BelongsTo<Member, $this> */
     public function member(): BelongsTo
     {
         return $this->belongsTo(Member::class);
     }
 
+    /** @return Attribute<string, never> */
     protected function monthName(): Attribute
     {
         return Attribute::make(
@@ -45,7 +47,7 @@ class Payment extends Model
                 11 => 'بهمن',
                 12 => 'اسفند',
                 default => 'نامشخص',
-            }
+            },
         );
     }
 }

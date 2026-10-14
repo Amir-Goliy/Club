@@ -1,8 +1,6 @@
 <?php
 
 use App\Http\Middleware\RoleMiddleware;
-use App\Http\Middleware\Rolee;
-use App\Http\Middleware\Roleee;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;

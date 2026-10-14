@@ -6,6 +6,7 @@ use Database\Factories\MemberFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Member extends Model
 {
@@ -21,19 +22,23 @@ class Member extends Model
         'phone',
         'national_code',
         'birth_date',
+        'account_approved_at',
     ];
 
+    /** @return BelongsTo<Club, $this> */
     public function club(): BelongsTo
     {
         return $this->belongsTo(Club::class);
     }
 
+    /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    public function payments()
+    /** @return HasMany<Payment, $this> */
+    public function payments(): HasMany
     {
         return $this->hasMany(Payment::class);
     }

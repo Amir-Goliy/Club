@@ -21,6 +21,7 @@ return new class extends Migration
             $table->string('national_code')->unique();
             $table->date('birth_date')->nullable();
             $table->string('phone')->nullable();
+            $table->timestamp('account_approved_at')->nullable();
             $table->timestamps();
         });
     }
