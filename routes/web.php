@@ -5,6 +5,10 @@ use Illuminate\Support\Facades\Route;
 Route::livewire('/', 'login')->name('login');
 
 Route::middleware('auth')->group(function () {
+    Route::livewire('/root/dashboard', 'root-dashboard')
+        ->name('root.dashboard')
+        ->middleware('role:root');
+
     Route::livewire('/admin/dashboard', 'admin-dashboard')
         ->name('admin.dashboard')
         ->middleware('role:admin');

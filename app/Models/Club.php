@@ -15,10 +15,10 @@ class Club extends Model
 
     protected $fillable = [
         'name',
-        'owner_name',
+        'root_name',
         'phone',
         'address',
-        'logo',
+        'image',
     ];
 
     /** @return HasOne<User, $this> */

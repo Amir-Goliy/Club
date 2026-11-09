@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('image')->nullable();
             $table->string('name');
-            $table->string('owner_name');
+            $table->string('root_name');
             $table->string('phone');
             $table->string('address');
             $table->timestamps();

@@ -64,7 +64,7 @@ new class extends Component {
         return Member::query()
             ->where('club_id', auth()->user()->club_id)
             ->with([
-                'payments' => fn ($query) => $query
+                'payments' => fn($query) => $query
                     ->where('year', jdate()->getYear())
                     ->where('month', jdate()->getMonth()),
             ])
@@ -133,7 +133,7 @@ new class extends Component {
 
     public function updatedPaymentMonth(): void
     {
-        if (! $this->editing) {
+        if (!$this->editing) {
             return;
         }
 
@@ -171,7 +171,7 @@ new class extends Component {
 
     public function update(): void
     {
-        if (! $this->editing) {
+        if (!$this->editing) {
             return;
         }
 
@@ -210,7 +210,7 @@ new class extends Component {
 
     protected function saveImage(): ?string
     {
-        if (! $this->image) {
+        if (!$this->image) {
             return null;
         }
 
@@ -249,7 +249,7 @@ new class extends Component {
 
     public function delete(): void
     {
-        if (! $this->deleting) {
+        if (!$this->deleting) {
             return;
         }
 
@@ -310,16 +310,16 @@ new class extends Component {
     <div class="flex justify-center mb-6">
         <div class="w-full max-w-50">
             <flux:input
-                wire:model.live.debounce.300ms="search"
-                placeholder="{{ __('Search') }}"
-                clearable
+                    wire:model.live.debounce.300ms="search"
+                    placeholder="{{ __('Search') }}"
+                    clearable
             />
         </div>
     </div>
 
     <flux:table
-        class="text-center"
-        :paginate="$this->members"
+            class="text-center"
+            :paginate="$this->members"
     >
         <flux:table.columns>
             <flux:table.column align="center">{{ __('Image') }}</flux:table.column>
@@ -339,9 +339,9 @@ new class extends Component {
                     <flux:table.cell class="flex justify-center items-center">
                         @if($member->image)
                             <img
-                                src="{{ Storage::url($member->image) }}"
-                                class="w-15 sm:w-30 rounded-xl object-cover"
-                                alt="{{ $member->first_name }}"
+                                    src="{{ Storage::url($member->image) }}"
+                                    class="w-15 sm:w-30 rounded-xl object-cover"
+                                    alt="{{ $member->first_name }}"
                             >
                         @else
                             <div class="w-15 h-15 rounded-xl bg-zinc-100 dark:bg-zinc-700 flex items-center justify-center">
@@ -375,16 +375,16 @@ new class extends Component {
                     <flux:table.cell>
                         <div class="flex gap-2 justify-center">
                             <flux:button
-                                wire:click="edit({{ $member->id }})"
-                                wire:loading.attr="disabled"
+                                    wire:click="edit({{ $member->id }})"
+                                    wire:loading.attr="disabled"
                             >
                                 {{ __('Edit') }}
                             </flux:button>
 
                             <flux:button
-                                wire:click="confirmDelete({{ $member->id }})"
-                                variant="danger"
-                                wire:loading.attr="disabled"
+                                    wire:click="confirmDelete({{ $member->id }})"
+                                    variant="danger"
+                                    wire:loading.attr="disabled"
                             >
                                 {{ __('Delete') }}
                             </flux:button>
@@ -402,10 +402,10 @@ new class extends Component {
     </flux:table>
 
     <flux:modal
-        name="member-modal"
-        :flyout="true"
-        position="left"
-        :dismissible="false"
+            name="member-modal"
+            :flyout="true"
+            position="left"
+            :dismissible="false"
     >
         <form wire:submit="{{ $editing ? 'update' : 'store' }}" class="space-y-4">
             <flux:heading>
@@ -415,79 +415,79 @@ new class extends Component {
             <flux:heading>{{ __('Member image') }}</flux:heading>
 
             <flux:input
-                type="file"
-                accept=".png,.jpg,.jpeg"
-                wire:model="image"
+                    type="file"
+                    accept=".png,.jpg,.jpeg"
+                    wire:model="image"
             />
 
             @if($image)
                 <div class="flex justify-center">
                     <img
-                        src="{{ $image->temporaryUrl() }}"
-                        class="w-20 sm:w-80 rounded-xl object-cover"
-                        alt=""
+                            src="{{ $image->temporaryUrl() }}"
+                            class="w-20 sm:w-80 rounded-xl object-cover"
+                            alt=""
                     >
                 </div>
             @elseif($oldImage)
                 <div class="flex justify-center">
                     <img
-                        src="{{ Storage::url($oldImage) }}"
-                        class="w-20 sm:w-80 rounded-xl object-cover"
-                        alt=""
+                            src="{{ Storage::url($oldImage) }}"
+                            class="w-20 sm:w-80 rounded-xl object-cover"
+                            alt=""
                     >
                 </div>
             @endif
 
-            <flux:separator />
+            <flux:separator/>
 
             <flux:heading>{{ __('Account approval') }}</flux:heading>
 
             <flux:checkbox
-                wire:model="account_approved"
-                label="{{ $account_approved ? __('Approved') : __('Not approved') }}"
+                    wire:model="account_approved"
+                    label="{{ $account_approved ? __('Approved') : __('Not approved') }}"
             />
 
-            <flux:separator />
+            <flux:separator/>
 
             <flux:heading>{{ __('Member information') }}</flux:heading>
 
             <flux:input
-                wire:model="first_name"
-                label="{{ __('First Name') }}"
-                required
+                    wire:model="first_name"
+                    label="{{ __('First Name') }}"
+                    required
             />
 
             <flux:input
-                wire:model="last_name"
-                label="{{ __('Last Name') }}"
-                required
+                    wire:model="last_name"
+                    label="{{ __('Last Name') }}"
+                    required
             />
 
             <flux:input
-                wire:model="national_code"
-                label="{{ __('National Code') }}"
-                required
+                    wire:model="national_code"
+                    label="{{ __('National Code') }}"
+                    required
             />
 
             <flux:input
-                mask="****-**-**"
-                wire:model="birth_date"
-                label="{{ __('Birth date') }}"
+                    mask="****-**-**"
+                    wire:model="birth_date"
+                    label="{{ __('Birth date') }}"
             />
 
             <flux:input
-                wire:model="phone"
-                label="{{ __('Phone') }}"
+                    wire:model="phone"
+                    label="{{ __('Phone') }}"
             />
 
-            <flux:separator />
+            <flux:separator/>
 
             <flux:heading>{{ __('Payment Information') }}</flux:heading>
 
             <flux:input
-                type="number"
-                wire:model="amount"
-                label="{{ __('Amount') }}"
+                    type="number"
+                    wire:model="amount"
+                    label="{{ __('Amount') }}"
             />
 
             <flux:select wire:model.live="payment_month" label="{{ __('Month') }}">
@@ -522,8 +522,8 @@ new class extends Component {
 
             <div class="flex justify-end">
                 <flux:button
-                    type="submit"
-                    wire:loading.attr="disabled"
+                        type="submit"
+                        wire:loading.attr="disabled"
                 >
                     {{ $editing ? __('Update') : __('Save') }}
                 </flux:button>
@@ -543,9 +543,9 @@ new class extends Component {
                 </flux:modal.close>
 
                 <flux:button
-                    wire:click="delete"
-                    variant="danger"
-                    wire:loading.attr="disabled"
+                        wire:click="delete"
+                        variant="danger"
+                        wire:loading.attr="disabled"
                 >
                     {{ __('Delete') }}
                 </flux:button>

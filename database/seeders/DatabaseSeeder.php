@@ -25,6 +25,12 @@ class DatabaseSeeder extends Seeder
                 User::factory()->create([
                     'name' => 'Test User',
                     'national_code' => '1234567890',
+                    'role' => 'root',
+                ]);
+
+                User::factory()->create([
+                    'name' => 'Test User',
+                    'national_code' => '1234567891',
                     'role' => 'admin',
                     'club_id' => $club->id,
                 ]);

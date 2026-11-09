@@ -1,6 +1,6 @@
-@php use App\Models\Member; @endphp
-@php use App\Models\Payment; @endphp
-    <!DOCTYPE html>
+@php use App\Models\Club;use App\Models\Member;use App\Models\Payment; @endphp
+@php @endphp
+        <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" dir="{{ app()->getLocale() == 'fa' ? 'rtl' : 'ltr' }}"
       class="dark">
 <head>
@@ -10,7 +10,19 @@
 <body class="min-h-screen bg-white dark:bg-zinc-800">
 
 @php
+    $isRoot = auth()->user()->role === 'root';
     $isAdmin = auth()->user()->role === 'admin';
+
+    if ($isRoot) {
+        $currentYear  = jdate()->getYear();
+        $currentMonth = jdate()->getMonth();
+
+        $clubsCount = Club::query()->count();
+
+        $todayFormatted = app()->getLocale() === 'fa'
+            ? jdate()->format('l d F Y')
+            : now()->translatedFormat('l, F d Y');
+    }
 
     if ($isAdmin) {
         $clubId = auth()->user()->club_id;
@@ -47,9 +59,25 @@
     <flux:sidebar.toggle class="sm:hidden mr-2" icon="bars-2" inset="left"/>
 
     <x-app-logo
-        href="{{ $isAdmin ? route('admin.dashboard') : route('member.dashboard') }}"
-        wire:navigate
+            href="{{ $isRoot
+            ? route('root.dashboard')
+            : ($isAdmin
+                ? route('admin.dashboard')
+                : route('member.dashboard')) }}"
+            wire:navigate
     />
+
+    @if($isRoot)
+        <flux:navbar class="-mb-px max-sm:hidden">
+            <flux:navbar.item
+                    icon="plus"
+                    wire:navigate
+                    x-on:click="$dispatch('open-create-club')"
+            >
+                {{ __('Create Club') }}
+            </flux:navbar.item>
+        </flux:navbar>
+    @endif
 
     @if($isAdmin)
         <flux:navbar class="-mb-px max-sm:hidden">
@@ -58,9 +86,9 @@
             </flux:navbar.item>
 
             <flux:navbar.item
-                icon="plus"
-                wire:navigate
-                x-on:click="$dispatch('open-create-member')"
+                    icon="plus"
+                    wire:navigate
+                    x-on:click="$dispatch('open-create-member')"
             >
                 {{ __('Create Member') }}
             </flux:navbar.item>
@@ -69,7 +97,7 @@
 
     <flux:spacer/>
 
-    @if($isAdmin)
+    @if($isAdmin or $isRoot)
         <flux:navbar class="-mb-px max-sm:hidden">
             <flux:navbar.item icon="calendar-days">
                 {{ $todayFormatted }}
@@ -79,6 +107,14 @@
 
     <flux:spacer/>
 
+    @if($isRoot)
+        <flux:navbar class="-mb-px max-sm:hidden">
+            <flux:navbar.item icon="user">
+                {{ __('Clubs') }} : {{ $clubsCount }}
+            </flux:navbar.item>
+        </flux:navbar>
+    @endif
+
     @if($isAdmin)
         <flux:navbar class="-mb-px max-sm:hidden">
             <flux:navbar.item icon="exclamation-triangle">
@@ -86,8 +122,8 @@
             </flux:navbar.item>
 
             <flux:checkbox
-                wire:navigate
-                x-on:change="$dispatch('debtor-toggle', { value: $event.target.checked })"
+                    wire:navigate
+                    x-on:change="$dispatch('debtor-toggle', { value: $event.target.checked })"
             />
 
             <flux:navbar.item icon="banknotes">
@@ -104,12 +140,12 @@
               class="sm:hidden border-e border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
     <flux:sidebar.header>
         <x-app-logo
-            :sidebar="true"
-            href="{{ $isAdmin ? route('admin.dashboard') : route('member.dashboard') }}"
-            wire:navigate
+                :sidebar="true"
+                href="{{ $isAdmin ? route('admin.dashboard') : route('member.dashboard') }}"
+                wire:navigate
         />
         <flux:sidebar.collapse
-            class="in-data-flux-sidebar-on-desktop:not-in-data-flux-sidebar-collapsed-desktop:-mr-2"/>
+                class="in-data-flux-sidebar-on-desktop:not-in-data-flux-sidebar-collapsed-desktop:-mr-2"/>
     </flux:sidebar.header>
 
     @if($isAdmin)
@@ -136,15 +172,15 @@
                 </flux:sidebar.item>
 
                 <flux:checkbox
-                    wire:navigate
-                    x-on:change="$dispatch('debtor-toggle', $event.target.checked)"
+                        wire:navigate
+                        x-on:change="$dispatch('debtor-toggle', $event.target.checked)"
                 />
             </div>
 
             <flux:sidebar.item
-                icon="plus"
-                wire:navigate
-                x-on:click="$dispatch('open-create-member')"
+                    icon="plus"
+                    wire:navigate
+                    x-on:click="$dispatch('open-create-member')"
             >
                 {{ __('Create Member') }}
             </flux:sidebar.item>

@@ -19,7 +19,7 @@ class ClubFactory extends Factory
     {
         return [
             'name' => fake()->name(),
-            'owner_name' => fake()->name(),
+            'root_name' => fake()->name(),
             'phone' => fake()->phoneNumber(),
             'address' => fake()->address(),
         ];

@@ -13,11 +13,11 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('club_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('club_id')->nullable()->constrained()->cascadeOnDelete();
             $table->string('name');
             $table->string('national_code')->unique();
             $table->string('password');
-            $table->enum('role', ['owner', 'admin', 'user'])->default('admin');
+            $table->enum('role', ['root', 'admin', 'user'])->default('admin');
             $table->rememberToken();
             $table->timestamps();
         });

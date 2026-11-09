@@ -8,5 +8,21 @@
 </svg>--}}
 
 @if(auth()->user())
-    <img class="size-8" src="{{ Storage::url(auth()->user()->club->image) }}" alt="">
+    @if (auth()->check())
+        @php
+            $user = auth()->user();
+
+            $logo = 'image/image.png';
+
+            if ($user->role !== 'root' && $user->club?->image) {
+                $logo = $user->club->image;
+            }
+        @endphp
+
+        <img
+                class="size-8 object-contain"
+                src="{{ Storage::url($logo) }}"
+                alt="Logo"
+        >
+    @endif
 @endif

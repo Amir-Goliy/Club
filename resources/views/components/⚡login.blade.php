@@ -166,12 +166,14 @@ class extends Component {
 
     protected function redirectByRole(): void
     {
-        $this->redirect(
-            auth()->user()->role === 'admin'
-                ? route('admin.dashboard')
-                : route('member.dashboard'),
-            navigate: true
-        );
+        $route = match (auth()->user()->role) {
+            'root' => 'root.dashboard',
+            'admin' => 'admin.dashboard',
+            'member' => 'member.dashboard',
+            default => abort(403),
+        };
+
+        $this->redirect(route($route), navigate: true);
     }
 
     protected function ensureIsNotRateLimited(): void
